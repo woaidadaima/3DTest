@@ -1,378 +1,425 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Three.js全景图查看器</title>
-    <style>
-      body {
-        margin: 0;
-        height: 100%;
-        overflow: hidden;
-      }
 
-      #c {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
+<head>
+  <meta charset="utf-8" />
+  <title>Three.js全景图查看器</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
 
-      /* 添加以下样式 */
-      #tag {
-        display: block;
-        color: white;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 2px 6px;
-        font-weight: 700;
-        font-size: 8px;
-        font-family: Arial, sans-serif;
-        /* user-select: none; */
-        /* pointer-events: auto; */
-        /* cursor: pointer; */
-      }
+    #c {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
 
-      #lineName {
-        display: block;
-        color: black;
-        font-weight: 700;
-        font-size: 12px;
-        font-family: Arial, sans-serif;
-        user-select: none;
-      }
-    </style>
-  </head>
+    /* 添加以下样式 */
+    #tag {
+      display: block;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px 6px;
+      font-weight: 700;
+      font-size: 8px;
+      font-family: Arial, sans-serif;
+      /* user-select: none; */
+      /* pointer-events: auto; */
+      /* cursor: pointer; */
+    }
 
-  <body>
-    <canvas id="c"></canvas>
-    <canvas id="tag">T1</canvas>
-    <div id="lineName">张丰666线</div>
-  </body>
-  <!-- 引入Three.js核心库 -->
-  <script type="importmap">
+    #lineName {
+      display: block;
+      color: black;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: Arial, sans-serif;
+      user-select: none;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="c"></canvas>
+  <canvas id="tag">T1</canvas>
+  <div id="lineName">张丰666线</div>
+</body>
+<!-- 引入Three.js核心库 -->
+<script type="importmap">
     {
       "imports": {
         "three": "./three/build/three.module.js",
-        "three/addons/": "./three/examples/jsm/"
+        "three/addons/": "./three/examples/jsm/",
+        "@tweenjs/tween.js": "./tween.js-main/dist/tween.esm.js"
       }
     }
   </script>
-  <script src="https://code.createjs.com/1.0.0/tweenjs.min.js"></script>
-  <!-- <script src="./TweenJS-master/lib/tweenjs.js"></script> -->
-  <script type="module">
-    import * as THREE from "three";
-    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+<script type="module">
+  import * as THREE from "three";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+  import { Sky } from "three/addons/objects/Sky.js";
+  import * as TWEEN from "@tweenjs/tween.js";
+  import {
+    CSS3DRenderer,
+    CSS3DObject,
+  } from "three/addons/renderers/CSS3DRenderer.js";
+  console.log(TWEEN);
+  // 初始化场景
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    80,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    20000
+  );
+  const canvas = document.querySelector("#c");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
 
-    import {
-      CSS3DRenderer,
-      CSS3DObject,
-    } from "three/addons/renderers/CSS3DRenderer.js";
-    console.log(createjs);
-    // 初始化场景
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      80,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      800
-    );
-    const canvas = document.querySelector("#c");
-    const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+  scene.background = new THREE.Color(0x000033); // 深蓝色背景
 
-    // 创建全景球体
-    const geometry = new THREE.SphereGeometry(500, 128, 64);
-    geometry.scale(-1, 1, 1); // 反转球体
 
-    //创建标记点
-    const markerGeometry = new THREE.SphereGeometry(5, 16, 16);
-    const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const markerPosition = {
-      x: 326,
-      y: -172,
-      z: -337,
-    };
-    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-    marker.name = "T1";
-    // 确保标记点在全景球体内部
-    const markerPos = new THREE.Vector3(
-      markerPosition.x,
-      markerPosition.y,
-      markerPosition.z
-    );
-    markerPos.normalize().multiplyScalar(470); // 稍微靠近相机一点
-    marker.position.copy(markerPos);
-    const times = [0, 1, 2];
-    const values = [
-      markerPos.x,
-      markerPos.y,
-      markerPos.z,
-      markerPos.x,
-      markerPos.y + 10,
-      markerPos.z,
-      markerPos.x,
-      markerPos.y,
-      markerPos.z,
-    ];
-    const posKF = new THREE.KeyframeTrack("T1.position", times, values);
-    const clip = new THREE.AnimationClip("test", 2, [posKF]);
-    const mixer = new THREE.AnimationMixer(marker);
-    mixer.clipAction(clip).play();
-    const clock = new THREE.Clock();
+  // 创建全景球体
+  const geometry = new THREE.SphereGeometry(3000, 128, 64);
+  geometry.scale(-1, 1, 1); // 反转球体
 
-    //创建标记点下方圆环
-    const markerGeometry1 = new THREE.CircleGeometry(5, 32);
-    // 修改材质为白色透明
-    const markerMaterial1 = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      // opacity: 0.8
-    });
-    const circle = new THREE.Mesh(markerGeometry1, markerMaterial1);
-    circle.name = "circle"; // 给圆环命名，用于动画
-    console.log("🚀 ~ circle:", circle);
+  //创建标记点
+  const markerGeometry = new THREE.SphereGeometry(5, 16, 16);
+  const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  const markerPosition = {
+    x: 326,
+    y: -172,
+    z: -337,
+  };
+  const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+  marker.name = "T1";
+  // 确保标记点在全景球体内部
+  const markerPos = new THREE.Vector3(
+    markerPosition.x,
+    markerPosition.y,
+    markerPosition.z
+  );
+  markerPos.normalize().multiplyScalar(470); // 稍微靠近相机一点
+  marker.position.copy(markerPos);
+  const times = [0, 1, 2];
+  const values = [
+    markerPos.x,
+    markerPos.y,
+    markerPos.z,
+    markerPos.x,
+    markerPos.y + 10,
+    markerPos.z,
+    markerPos.x,
+    markerPos.y,
+    markerPos.z,
+  ];
+  const posKF = new THREE.KeyframeTrack("T1.position", times, values);
+  const clip = new THREE.AnimationClip("test", 2, [posKF]);
+  const mixer = new THREE.AnimationMixer(marker);
+  mixer.clipAction(clip).play();
+  const clock = new THREE.Clock();
 
-    // 计算圆环位置，将圆环放置在红色标记点下方10个单位
-    const circlePos = markerPos.clone();
-    circlePos.y -= 10; // 在Y轴方向下移10个单位
-    circle.position.copy(circlePos);
+  //创建标记点下方圆环
+  const markerGeometry1 = new THREE.CircleGeometry(5, 32);
+  // 修改材质为白色透明
+  const markerMaterial1 = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    // opacity: 0.8
+  });
+  const circle = new THREE.Mesh(markerGeometry1, markerMaterial1);
+  circle.name = "circle"; // 给圆环命名，用于动画
+  console.log("🚀 ~ circle:", circle);
 
-    // 设置圆环的旋转，让它朝向屏幕上方，同时保持圆形可见
-    // 绕X轴旋转-60度，让圆环倾斜朝向相机
-    circle.rotation.x = -Math.PI / 2; // -60度
-    // 可以根据需要微调Y轴和Z轴的旋转
-    circle.rotation.y = 0;
-    circle.rotation.z = 0;
+  // 计算圆环位置，将圆环放置在红色标记点下方10个单位
+  const circlePos = markerPos.clone();
+  circlePos.y -= 10; // 在Y轴方向下移10个单位
+  circle.position.copy(circlePos);
 
-    // 创建圆环的半径变化动画
-    const circleScaleTimes = [0, 1, 2];
-    const circleScaleValues = [
-      1,
-      1,
-      1, // 初始大小 (scale = 1)
-      4,
-      4,
-      4, // 1秒时放大到2倍
-      1,
-      1,
-      1, // 2秒时恢复原始大小
-    ];
-    const circleScaleKF = new THREE.KeyframeTrack(
-      "circle.scale",
-      circleScaleTimes,
-      circleScaleValues
-    );
-    const circleClip = new THREE.AnimationClip("circleScale", 2, [
-      circleScaleKF,
-    ]);
-    const circleMixer = new THREE.AnimationMixer(circle);
-    circleMixer.clipAction(circleClip).play();
-    //创建一条曲线
-    const pointArr = [
-      new THREE.Vector3(326, 64, -372),
-      new THREE.Vector3(80, 74, -487),
-      new THREE.Vector3(-183, 69, -459),
-    ];
-    const curve = new THREE.CatmullRomCurve3(pointArr);
-    const pointsArr = curve.getPoints(200);
-    const geometryLine = new THREE.BufferGeometry();
-    //读取坐标数据赋值给几何体顶点
-    geometryLine.setFromPoints(pointsArr);
-    // 线材质 - 使用更鲜艳的颜色和更粗的线条
-    const material = new THREE.LineBasicMaterial({
-      color: "#00FF41", // 更鲜艳的绿色
-      linewidth: "100", // 增加线条粗细
-      transparent: true,
-      opacity: 0.9, // 稍微透明以增强视觉效果
-    });
+  // 设置圆环的旋转，让它朝向屏幕上方，同时保持圆形可见
+  // 绕X轴旋转-60度，让圆环倾斜朝向相机
+  circle.rotation.x = -Math.PI / 2; // -60度
+  // 可以根据需要微调Y轴和Z轴的旋转
+  circle.rotation.y = 0;
+  circle.rotation.z = 0;
 
-    // 线模型
-    const line = new THREE.Line(geometryLine, material);
+  // 创建圆环的半径变化动画
+  const circleScaleTimes = [0, 1, 2];
+  const circleScaleValues = [
+    1,
+    1,
+    1, // 初始大小 (scale = 1)
+    4,
+    4,
+    4, // 1秒时放大到2倍
+    1,
+    1,
+    1, // 2秒时恢复原始大小
+  ];
+  const circleScaleKF = new THREE.KeyframeTrack(
+    "circle.scale",
+    circleScaleTimes,
+    circleScaleValues
+  );
+  const circleClip = new THREE.AnimationClip("circleScale", 2, [
+    circleScaleKF,
+  ]);
+  const circleMixer = new THREE.AnimationMixer(circle);
+  circleMixer.clipAction(circleClip).play();
 
-    //创建标签
-    const div = document.getElementById("tag");
+  //创建一条曲线
+  const pointArr = [
+    new THREE.Vector3(326, 64, -372),
+    new THREE.Vector3(80, 74, -487),
+    new THREE.Vector3(-183, 69, -459),
+  ];
+  //创建线名称
+  const lineNameLabel = document.getElementById("lineName");
+  // HTML元素转化为threejs的CSS2模型对象
+  const lineNameTag = new CSS3DObject(lineNameLabel);
+  lineNameTag.position.set(pointArr[1].x, pointArr[1].y, pointArr[1].z);
+  const css3Renderer = new CSS3DRenderer();
+  css3Renderer.setSize(window.innerWidth, window.innerHeight); // 设置CSS2D渲染器尺寸
 
-    // HTML元素转化为threejs的CSS2模型对象
-    const context = div.getContext("2d");
-    const pixelRatio = window.devicePixelRatio || 1; // 获取设备像素比
-    const width = 128; // 逻辑宽度
-    const height = 64; // 逻辑高度
+  css3Renderer.domElement.style.position = "absolute";
+  css3Renderer.domElement.style.top = "0px";
+  css3Renderer.domElement.style.pointerEvents = "none"; // 防止标签拦截鼠标
 
-    div.width = width * pixelRatio; // 实际像素宽度
-    div.height = height * pixelRatio; // 实际像素高度
-    div.style.width = `${width}px`; // 显示宽度（CSS像素）
-    div.style.height = `${height}px`; // 显示高度
-    // 2. 缩放绘图上下文以匹配高清 Canvas
-    context.scale(pixelRatio, pixelRatio);
+  const curve = new THREE.CatmullRomCurve3(pointArr);
+  const pointsArr = curve.getPoints(200);
+  const geometryLine = new THREE.BufferGeometry();
+  //读取坐标数据赋值给几何体顶点
+  geometryLine.setFromPoints(pointsArr);
+  // 线材质 - 使用更鲜艳的颜色和更粗的线条
+  const material = new THREE.LineBasicMaterial({
+    color: "#00FF41", // 更鲜艳的绿色
+    linewidth: "100", // 增加线条粗细
+    transparent: true,
+    opacity: 0.9, // 稍微透明以增强视觉效果
+  });
+  // 线模型
+  const line = new THREE.Line(geometryLine, material);
+  const linesGroup = new THREE.Group();
+  linesGroup.add(line, lineNameTag);
 
-    context.fillStyle = "rgba(0, 0, 0, 0.5)";
-    context.fillRect(0, 0, width, height);
-    context.font = "bold 30px Arial";
-    context.fillStyle = "white";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText("T1", width / 2, height / 2);
+  //创建标签
+  const div = document.getElementById("tag");
 
-    // 2. 转换为 Three.js 纹理并创建 Sprite
-    const texture = new THREE.CanvasTexture(div);
-    texture.minFilter = THREE.LinearFilter; // 缩小过滤
-    texture.magFilter = THREE.LinearFilter; // 放大过滤
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(20, 10, 5);
-    sprite.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
+  //获取canvas上下文
+  const context = div.getContext("2d");
+  const pixelRatio = window.devicePixelRatio || 1; // 获取设备像素比
+  const width = 256; // 逻辑宽度
+  const height = 128; // 逻辑高度
 
-    // tag.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
-    //创建线名称
-    const lineNameLabel = document.getElementById("lineName");
-    // HTML元素转化为threejs的CSS2模型对象
-    const lineNameTag = new CSS3DObject(lineNameLabel);
-    lineNameTag.position.set(pointArr[1].x, pointArr[1].y, pointArr[1].z);
-    const css3Renderer = new CSS3DRenderer();
-    css3Renderer.setSize(window.innerWidth, window.innerHeight); // 设置CSS2D渲染器尺寸
+  div.width = width * pixelRatio; // 实际像素宽度
+  div.height = height * pixelRatio; // 实际像素高度
+  div.style.width = `${width}px`; // 显示宽度（CSS像素）
+  div.style.height = `${height}px`; // 显示高度
+  // 2. 缩放绘图上下文以匹配高清 Canvas
+  context.scale(pixelRatio, pixelRatio);
 
-    css3Renderer.domElement.style.position = "absolute";
-    css3Renderer.domElement.style.top = "0px";
-    css3Renderer.domElement.style.pointerEvents = "none"; // 防止标签拦截鼠标
+  context.fillStyle = "rgba(0, 0, 0, 0.5)";
+  context.fillRect(0, 0, width, height);
+  context.font = "bold 90px Arial";
+  context.fillStyle = "white";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText("T1", width / 2, height / 2);
 
-    const group = new THREE.Group();
-    group.add(marker,circle,sprite);
-    // group.add(circle);
-    // group.add(tag);
-    console.log("🚀 ~ group:", group);
+  // 2. 转换为 Three.js 纹理并创建 Sprite
+  const texture = new THREE.CanvasTexture(div);
+  texture.minFilter = THREE.LinearFilter; // 缩小过滤
+  texture.magFilter = THREE.LinearFilter; // 放大过滤
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
+  const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+  const sprite = new THREE.Sprite(spriteMaterial);
+  sprite.scale.set(20, 10, 5);
+  sprite.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
 
-    document.body.appendChild(css3Renderer.domElement);
+  // tag.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
 
-    windowResize(); // 初始化尺寸
-    // 加载纹理
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load(
-      "./images/DJI_20250228152043_0001_V.JPG",
-      function (texture) {
-        console.log(
-          "Loaded texture size:",
-          texture.image.width,
-          texture.image.height
-        );
-        texture.colorSpace = THREE.SRGBColorSpace; // 关键！告诉Three.js这是sRGB色彩
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
-        texture.minFilter = THREE.LinearFilter; // 禁用默认的mipmap压缩
-        // texture.magFilter = THREE.LinearFilter; // 禁用放大时的模糊
-        // texture.generateMipmaps = false; // 关闭mipmap生成（避免降级）
-        const material = new THREE.MeshBasicMaterial({ map: texture });
-        const sphere = new THREE.Mesh(geometry, material);
-        scene.add(sphere);
-        // scene.add(tag);
-        scene.add(group);
-        // scene.add(marker);
-        // scene.add(circle);
-        // scene.add(sprite);
-        scene.add(line);
-        scene.add(lineNameTag); // 添加线名称标签到场景
-      }
-    );
 
-    camera.position.z = 100;
 
-    // 初始化光线投射器（用于计算点击位置）
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+  const marksGroup = new THREE.Group();
+  marksGroup.add(marker, circle, sprite);
+  // group.add(circle);
+  // group.add(tag);
+  console.log("🚀 ~ marksGroup:", marksGroup);
 
-    // 监听鼠标点击事件
-    window.addEventListener("click", (event) => {
-      // 1. 获取鼠标标准化坐标（-1到1）
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  document.body.appendChild(css3Renderer.domElement);
 
-      // 2. 更新射线投射器
-      raycaster.setFromCamera(mouse, camera);
+  windowResize(); // 初始化尺寸
+  // 加载纹理
+  const textureLoader = new THREE.TextureLoader();
+  textureLoader.load(
+    "./images/DJI_20250228152043_0001_V.JPG",
+    function (texture) {
+      console.log(
+        "Loaded texture size:",
+        texture.image.width,
+        texture.image.height
+      );
+      texture.colorSpace = THREE.SRGBColorSpace; // 关键！告诉Three.js这是sRGB色彩
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
+      texture.minFilter = THREE.LinearFilter; // 禁用默认的mipmap压缩
+      texture.magFilter = THREE.LinearFilter; // 禁用放大时的模糊
+      texture.generateMipmaps = false; // 关闭mipmap生成（避免降级）
+      const material = new THREE.MeshBasicMaterial({ map: texture });
+      const sphere = new THREE.Mesh(geometry, material);
+      scene.add(sphere);
+      scene.add(linesGroup);
+      scene.add(marksGroup);
 
-      // 3. 计算与球体的交点
-      const intersects = raycaster.intersectObjects([group]);
-      console.log("🚀 ~ window.addEventListener ~ intersects:", intersects)
-      if (intersects.length > 0) {
-        //修改相机位置移动到mark标记点
-        camera.position.copy(intersects[0].point).add(new THREE.Vector3(0, 0, 100))
-        // camera.lookAt(intersects[0].point);
-      }
-    });
+    }
+  );
+  camera.position.set(6000, 6000, 6000);
+  camera.lookAt(0, 0, 0);
+  // 视觉效果：地球从小到大出现(透视投影相机远小近大投影规律)
+  let tween2 = new TWEEN.Tween(camera.position)
 
-    //监听鼠标移入事件
-    window.addEventListener("mousemove", (event) => {
-      // 1. 获取鼠标标准化坐标（-1到1）
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    .to({ x: 0, y: 0, z: 100 }, 6000)
+    .onComplete(() => {
+      controls.target.set(0, 0, 0); // ⚠️ 关键！设置 target 为球体中心
+      controls.update(); // 强制刷新控制器
+      // 动画完成后重新启用控制器（可选）
+      // controls.enabled = true;
+    })
+    .onUpdate(() => {
+      camera.lookAt(0, 0, 0);
+    })
+    .easing(TWEEN.Easing.Quadratic.Out)
+    .start()
 
-      // 2. 更新射线投射器
-      raycaster.setFromCamera(mouse, camera);
+  // camera.position.z = 100;
 
-      // 3. 计算与球体的交点
-      const intersects = raycaster.intersectObjects([group]);
-      // console.log("🚀 ~ window.addEventListener ~ intersects:", intersects);
-      // 改变鼠标样式
-      renderer.domElement.style.cursor =
-        intersects.length > 0 ? "pointer" : "auto";
-    });
-    // 添加轨道控制器
-    const controls = new OrbitControls(camera, renderer.domElement);
+  // 初始化光线投射器（用于计算点击位置）
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let tween = null;
+  // 监听鼠标点击事件
+  window.addEventListener("click", (event) => {
+    // 1. 获取鼠标标准化坐标（-1到1）
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    controls.mouseButtons = {
-      LEFT: THREE.MOUSE.ROTATE,
-      MIDDLE: THREE.MOUSE.DOLLY,
-      RIGHT: THREE.MOUSE.PAN,
-    };
+    // 2. 更新射线投射器
+    raycaster.setFromCamera(mouse, camera);
 
-    controls.enableZoom = true; // 启用缩放
-    controls.zoomSpeed = 1.5;
-    controls.enablePan = false; // 禁用平移
-    controls.minDistance = 0.5; // 最小缩放距离
-    controls.maxDistance = 100; // 最大缩放距离
-    // 限制俯仰角度，防止看到极点
-    controls.minPolarAngle = Math.PI / 8;
-    controls.maxPolarAngle = Math.PI - Math.PI / 8;
+    // 3. 计算与球体的交点
+    const intersects = raycaster.intersectObjects([marksGroup]);
+    console.log("🚀 ~ window.addEventListener ~ intersects:", intersects)
+    if (intersects.length > 0) {
+      //修改相机位置移动到mark标记点
+      const targetPoint = intersects[0].point; // 目标点
+      const targetCameraPos = {
+        x: targetPoint.x,
+        y: targetPoint.y, // 相机移动到目标点上方 100 单位
+        z: targetPoint.z + 200,
+      };
+      // 临时禁用 OrbitControls
+      // controls.enabled = false;
+      tween = new TWEEN.Tween(camera.position).to(targetCameraPos, 3000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .onUpdate(function () {
+          // camera.lookAt(targetPoint);
+        })
+        .onComplete(() => {
+          controls.target.copy(targetPoint);
+          controls.update();
+          // 动画完成后重新启用控制器（可选）
+          // controls.enabled = true;
+        })
+        .start()
+    }
+  });
 
-    function resizeRendererToDisplaySize(renderer) {
+  //监听鼠标移入事件
+  window.addEventListener("mousemove", (event) => {
+    // 1. 获取鼠标标准化坐标（-1到1）
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // 2. 更新射线投射器
+    raycaster.setFromCamera(mouse, camera);
+
+    // 3. 计算与球体的交点
+    const intersects = raycaster.intersectObjects([marksGroup]);
+    // console.log("🚀 ~ window.addEventListener ~ intersects:", intersects);
+    // 改变鼠标样式
+    renderer.domElement.style.cursor =
+      intersects.length > 0 ? "pointer" : "auto";
+  });
+  // 添加轨道控制器
+  const controls = new OrbitControls(camera, renderer.domElement);
+
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.PAN,
+  };
+
+  controls.enableZoom = true; // 启用缩放
+  controls.zoomSpeed = 1.5;
+  controls.enablePan = false; // 禁用平移
+  controls.minDistance = 0.5; // 最小缩放距离
+  controls.maxDistance = 1500; // 最大缩放距离
+  // 限制俯仰角度，防止看到极点
+  controls.minPolarAngle = Math.PI / 8;
+  controls.maxPolarAngle = Math.PI - Math.PI / 8;
+
+  function resizeRendererToDisplaySize(renderer) {
+    const canvas = renderer.domElement;
+
+    const width = canvas.clientWidth * window.devicePixelRatio;
+
+    const height = canvas.clientHeight * window.devicePixelRatio;
+
+    const needResize = canvas.width !== width || canvas.height !== height;
+    if (needResize) {
+      renderer.setSize(width, height, false);
+    }
+    return needResize;
+  }
+
+  // 动画循环
+  function animate() {
+    if (resizeRendererToDisplaySize(renderer)) {
       const canvas = renderer.domElement;
-      console.log(canvas.clientWidth, canvas.width);
-
-      const width = canvas.clientWidth * window.devicePixelRatio;
-
-      const height = canvas.clientHeight * window.devicePixelRatio;
-
-      const needResize = canvas.width !== width || canvas.height !== height;
-      if (needResize) {
-        renderer.setSize(width, height, false);
-      }
-      return needResize;
-    }
-
-    // 动画循环
-    function animate() {
-      if (resizeRendererToDisplaySize(renderer)) {
-        const canvas = renderer.domElement;
-        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        camera.updateProjectionMatrix();
-        css3Renderer.setSize(canvas.clientWidth, canvas.clientHeight); // 同步 CSS2D 尺寸
-      }
-      controls.update(); // 更新控制器
-      renderer.render(scene, camera);
-
-      css3Renderer.render(scene, camera); // 渲染 CSS2D 标签
-
-      requestAnimationFrame(animate);
-      const frameT = clock.getDelta();
-      // 更新播放器相关的时间
-      mixer.update(frameT);
-      // 更新圆环动画
-      circleMixer.update(frameT);
-    }
-    animate();
-
-    function windowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight, false);
-      css3Renderer.setSize(window.innerWidth, window.innerHeight); // 同步CSS2D渲染器尺寸
+      css3Renderer.setSize(canvas.clientWidth, canvas.clientHeight); // 同步 CSS2D 尺寸
     }
-    // 响应式调整
-    window.addEventListener("resize", windowResize);
-  </script>
+    tween2.update();
+    if (tween) {
+      tween.update();
+    }
+    // controls.update(); // 更新控制器
+    renderer.render(scene, camera);
+
+    css3Renderer.render(scene, camera); // 渲染 CSS2D 标签
+
+    requestAnimationFrame(animate);
+
+
+
+    const frameT = clock.getDelta();
+    // 更新播放器相关的时间
+    mixer.update(frameT);
+    // 更新圆环动画
+    circleMixer.update(frameT);
+  }
+  animate();
+
+  function windowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    css3Renderer.setSize(window.innerWidth, window.innerHeight); // 同步CSS2D渲染器尺寸
+  }
+  // 响应式调整
+  window.addEventListener("resize", windowResize);
+</script>
+
 </html>
