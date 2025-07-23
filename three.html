@@ -319,17 +319,19 @@
         z: targetPoint.z + 200,
       };
       // 临时禁用 OrbitControls
-      // controls.enabled = false;
+      controls.enabled = false;
       tween = new TWEEN.Tween(camera.position).to(targetCameraPos, 3000)
         .easing(TWEEN.Easing.Quadratic.InOut)
         .onUpdate(function () {
           // camera.lookAt(targetPoint);
         })
         .onComplete(() => {
+
           controls.target.copy(targetPoint);
           controls.update();
           // 动画完成后重新启用控制器（可选）
-          // controls.enabled = true;
+          controls.enabled = true;
+
         })
         .start()
     }
