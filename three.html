@@ -35,16 +35,17 @@
       display: block;
       color: black;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 128px;
       font-family: Arial, sans-serif;
       user-select: none;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
   <canvas id="c"></canvas>
-  <canvas id="tag">T1</canvas>
+  <canvas id="tag" style="width: 2048px;height: 1024px;">T1</canvas>
   <div id="lineName">张丰666线</div>
 </body>
 <!-- 引入Three.js核心库 -->
@@ -78,7 +79,7 @@
   const canvas = document.querySelector("#c");
   const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
 
-  scene.background = new THREE.Color(0x000033); // 深蓝色背景
+  scene.background = new THREE.Color(0xC1DBFE); // 深蓝色背景
 
 
   // 创建全景球体
@@ -127,6 +128,7 @@
   const markerMaterial1 = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
+    side: THREE.DoubleSide, //两面可见
     // opacity: 0.8
   });
   const circle = new THREE.Mesh(markerGeometry1, markerMaterial1);
@@ -171,12 +173,13 @@
 
   //创建一条曲线
   const pointArr = [
-    new THREE.Vector3(326, 64, -372),
-    new THREE.Vector3(80, 74, -487),
-    new THREE.Vector3(-183, 69, -459),
+    new THREE.Vector3(-1128, 414, -2748),
+    new THREE.Vector3(570, 445, -2911),
+    new THREE.Vector3(1868, 376, -2314),
   ];
   //创建线名称
   const lineNameLabel = document.getElementById("lineName");
+  console.log("🚀 ~ lineNameLabel:", lineNameLabel.style)
   // HTML元素转化为threejs的CSS2模型对象
   const lineNameTag = new CSS3DObject(lineNameLabel);
   lineNameTag.position.set(pointArr[1].x, pointArr[1].y, pointArr[1].z);
@@ -188,7 +191,7 @@
   css3Renderer.domElement.style.pointerEvents = "none"; // 防止标签拦截鼠标
 
   const curve = new THREE.CatmullRomCurve3(pointArr);
-  const pointsArr = curve.getPoints(200);
+  const pointsArr = curve.getPoints(600);
   const geometryLine = new THREE.BufferGeometry();
   //读取坐标数据赋值给几何体顶点
   geometryLine.setFromPoints(pointsArr);
@@ -235,7 +238,7 @@
   texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
   const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
   const sprite = new THREE.Sprite(spriteMaterial);
-  sprite.scale.set(20, 10, 5);
+  sprite.scale.set(40, 20, 5);
   sprite.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
 
   // tag.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
@@ -280,12 +283,6 @@
   let tween2 = new TWEEN.Tween(camera.position)
 
     .to({ x: 0, y: 0, z: 100 }, 6000)
-    .onComplete(() => {
-      controls.target.set(0, 0, 0); // ⚠️ 关键！设置 target 为球体中心
-      controls.update(); // 强制刷新控制器
-      // 动画完成后重新启用控制器（可选）
-      // controls.enabled = true;
-    })
     .onUpdate(() => {
       camera.lookAt(0, 0, 0);
     })
@@ -377,6 +374,7 @@
     const width = canvas.clientWidth * window.devicePixelRatio;
 
     const height = canvas.clientHeight * window.devicePixelRatio;
+
 
     const needResize = canvas.width !== width || canvas.height !== height;
     if (needResize) {
