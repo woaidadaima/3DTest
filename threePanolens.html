@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>threePanolens</title>
+</head>
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+</style>
+
+<body>
+    <div id="container" style="width: 100%; height: 100%;"></div>
+</body>
+
+<script src="./libs/three.min.js"></script>
+<script src="./libs/panolens.min.js"></script>
+
+<script type="module">
+    const panorama1 = new PANOLENS.ImagePanorama("./images/DJI_20250228152043_0001_V.JPG");
+    const viewer = new PANOLENS.Viewer({
+        container: document.getElementById('container'),
+        output: 'console',
+        autoHideInfospot: false  // 禁用自动隐藏
+    });
+    const panorama2 = new PANOLENS.ImagePanorama("./images/HMSH全景_00635_.png");
+
+    viewer.add(panorama1);
+    viewer.add(panorama2);
+    viewer.outputPosition()
+    panorama1.link(panorama2, new THREE.Vector3(-3704.70, -811.61, -3252.29))
+    panorama2.link(panorama1, new THREE.Vector3(-3704.70, -811.61, -3252.29))
+
+
+    const createInfospot = (n) => {
+        //随机创建n个info
+        for (let i = 0; i < n; i++) {
+            const infospot = new PANOLENS.Infospot(350, PANOLENS.DataImage.Info)
+            infospot.position.set(Math.random() * 10000 - 5000, Math.random() * 10000 - 5000, Math.random() * 10000 - 5000)
+            infospot.addHoverText('T' + i)
+            panorama1.add(infospot)
+            //给每个infospot添加点击事件，打印点击的名字
+            infospot.addEventListener('click', () => {
+                console.log('点击了infospot' + i)
+                infospot.focus()
+            })
+        }
+    }
+
+    createInfospot(10)
+
+</script>
+
+</html>
