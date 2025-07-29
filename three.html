@@ -67,7 +67,12 @@
     CSS3DRenderer,
     CSS3DObject,
   } from "three/addons/renderers/CSS3DRenderer.js";
+  import {
+    LineModel
+  } from "./threeDemoJs/index.js"
   console.log(TWEEN);
+  console.log("🚀 ~ LineModel:", LineModel)
+
   // 初始化场景
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
@@ -102,7 +107,7 @@
     markerPosition.y,
     markerPosition.z
   );
-  markerPos.normalize().multiplyScalar(470); // 稍微靠近相机一点
+  // markerPos.normalize().multiplyScalar(470); // 稍微靠近相机一点
   marker.position.copy(markerPos);
   const times = [0, 1, 2];
   const values = [
@@ -189,7 +194,25 @@
   css3Renderer.domElement.style.position = "absolute";
   css3Renderer.domElement.style.top = "0px";
   css3Renderer.domElement.style.pointerEvents = "none"; // 防止标签拦截鼠标
+  const lineInstance = new LineModel({
+    basicMaterial: {
+      color: "#00FF41", // 更鲜艳的绿色
+      linewidth: "100", // 增加线条粗细
+      transparent: true,
+      opacity: 0.9
+    },
+    dataSource: [
+      [- 1128, 414, -2748],
+      [- 570, 445, - 2911],
+      [- 1868, 376, - 2314],
+    ]
+  }, {
+    domId: 'lineName',
+    window: window
+  })
 
+
+  console.log("🚀 ~ lineInstance:", lineInstance.line)
   const curve = new THREE.CatmullRomCurve3(pointArr);
   const pointsArr = curve.getPoints(600);
   const geometryLine = new THREE.BufferGeometry();
@@ -204,6 +227,7 @@
   });
   // 线模型
   const line = new THREE.Line(geometryLine, material);
+  console.log("🚀 ~ line:", line)
   const linesGroup = new THREE.Group();
   linesGroup.add(line, lineNameTag);
 
@@ -271,6 +295,7 @@
       texture.generateMipmaps = false; // 关闭mipmap生成（避免降级）
       const material = new THREE.MeshBasicMaterial({ map: texture });
       const sphere = new THREE.Mesh(geometry, material);
+      sphereMesh = sphere; // 保存球体引用
       scene.add(sphere);
       scene.add(linesGroup);
       scene.add(marksGroup);
@@ -295,57 +320,222 @@
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let tween = null;
-  // 监听鼠标点击事件
+
+  // 场景状态管理
+  let currentScene = 'scene1'; // 当前场景：scene1 或 scene2
+  let sphereMesh = null; // 全景球体引用
+
+  // 创建场景2的标记点T2
+  const createT2Marker = () => {
+    // T2标记点
+    const t2MarkerGeometry = new THREE.SphereGeometry(5, 16, 16);
+    const t2MarkerMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // 绿色
+    const t2Marker = new THREE.Mesh(t2MarkerGeometry, t2MarkerMaterial);
+    t2Marker.name = "T2";
+
+    // T2标记点位置
+    const t2MarkerPosition = {
+      x: -200,
+      y: 50,
+      z: 400,
+    };
+    const t2MarkerPos = new THREE.Vector3(
+      t2MarkerPosition.x,
+      t2MarkerPosition.y,
+      t2MarkerPosition.z
+    );
+    t2MarkerPos.normalize().multiplyScalar(470);
+    t2Marker.position.copy(t2MarkerPos);
+
+    // T2圆环
+    const t2CircleGeometry = new THREE.CircleGeometry(5, 32);
+    const t2CircleMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+    const t2Circle = new THREE.Mesh(t2CircleGeometry, t2CircleMaterial);
+    t2Circle.name = "t2Circle";
+
+    const t2CirclePos = t2MarkerPos.clone();
+    t2CirclePos.y -= 10;
+    t2Circle.position.copy(t2CirclePos);
+    t2Circle.rotation.x = -Math.PI / 2;
+
+    // T2标签
+    const t2Canvas = document.createElement('canvas');
+    const t2Context = t2Canvas.getContext('2d');
+    const pixelRatio = window.devicePixelRatio || 1;
+    const width = 256;
+    const height = 128;
+
+    t2Canvas.width = width * pixelRatio;
+    t2Canvas.height = height * pixelRatio;
+    t2Canvas.style.width = `${width}px`;
+    t2Canvas.style.height = `${height}px`;
+    t2Context.scale(pixelRatio, pixelRatio);
+
+    t2Context.fillStyle = "rgba(0, 128, 0, 0.5)";
+    t2Context.fillRect(0, 0, width, height);
+    t2Context.font = "bold 90px Arial";
+    t2Context.fillStyle = "white";
+    t2Context.textAlign = "center";
+    t2Context.textBaseline = "middle";
+    t2Context.fillText("T2", width / 2, height / 2);
+
+    const t2Texture = new THREE.CanvasTexture(t2Canvas);
+    t2Texture.minFilter = THREE.LinearFilter;
+    t2Texture.magFilter = THREE.LinearFilter;
+    t2Texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const t2SpriteMaterial = new THREE.SpriteMaterial({ map: t2Texture });
+    const t2Sprite = new THREE.Sprite(t2SpriteMaterial);
+    t2Sprite.scale.set(40, 20, 5);
+    t2Sprite.position.copy(t2MarkerPos).add(new THREE.Vector3(0, 30, 0));
+
+    // T2标记点动画
+    const t2Times = [0, 1, 2];
+    const t2Values = [
+      t2MarkerPos.x,
+      t2MarkerPos.y,
+      t2MarkerPos.z,
+      t2MarkerPos.x,
+      t2MarkerPos.y + 10,
+      t2MarkerPos.z,
+      t2MarkerPos.x,
+      t2MarkerPos.y,
+      t2MarkerPos.z,
+    ];
+    const t2PosKF = new THREE.KeyframeTrack("T2.position", t2Times, t2Values);
+    const t2Clip = new THREE.AnimationClip("t2Test", 2, [t2PosKF]);
+    const t2Mixer = new THREE.AnimationMixer(t2Marker);
+    t2Mixer.clipAction(t2Clip).play();
+
+    // T2圆环缩放动画
+    const t2CircleScaleTimes = [0, 1, 2];
+    const t2CircleScaleValues = [
+      1, 1, 1, // 初始大小
+      4, 4, 4, // 1秒时放大到4倍
+      1, 1, 1, // 2秒时恢复原始大小
+    ];
+    const t2CircleScaleKF = new THREE.KeyframeTrack(
+      "t2Circle.scale",
+      t2CircleScaleTimes,
+      t2CircleScaleValues
+    );
+    const t2CircleClip = new THREE.AnimationClip("t2CircleScale", 2, [
+      t2CircleScaleKF,
+    ]);
+    const t2CircleMixer = new THREE.AnimationMixer(t2Circle);
+    t2CircleMixer.clipAction(t2CircleClip).play();
+
+    const t2Group = new THREE.Group();
+    t2Group.add(t2Marker, t2Circle, t2Sprite);
+    // 将动画混合器添加到组的userData中，以便在动画循环中更新
+    t2Group.userData = {
+      markerMixer: t2Mixer,
+      circleMixer: t2CircleMixer
+    };
+    return t2Group;
+  };
+
+  // 场景状态定义
+  const sceneStates = {
+    scene1: {
+      texture: "./images/DJI_20250228152043_0001_V.JPG",
+      markers: marksGroup, // T1标记组
+      lines: linesGroup,
+      css3D: true
+    },
+    scene2: {
+      texture: "./images/HMSH全景_00635_.png",
+      markers: createT2Marker(), // T2标记组
+      lines: null,
+      css3D: false
+    }
+  };
+
+  // 切换场景函数
+  const switchToScene = (targetScene) => {
+    if (currentScene === targetScene) return;
+
+    const currentState = sceneStates[currentScene];
+    const targetState = sceneStates[targetScene];
+
+    // 移除当前场景的元素
+    if (currentState.markers) scene.remove(currentState.markers);
+    if (currentState.lines) scene.remove(currentState.lines);
+    if (currentState.css3D && css3Renderer.domElement.parentNode) {
+      css3Renderer.domElement.parentNode.removeChild(css3Renderer.domElement);
+    }
+
+    // 加载新场景的纹理
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(targetState.texture, function (newTexture) {
+      console.log(`Loading ${targetScene} panorama texture...`);
+      newTexture.colorSpace = THREE.SRGBColorSpace;
+      newTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      newTexture.minFilter = THREE.LinearFilter;
+      newTexture.magFilter = THREE.LinearFilter;
+      newTexture.generateMipmaps = false;
+
+      // 更新球体纹理
+      if (sphereMesh) {
+        sphereMesh.material.map = newTexture;
+        sphereMesh.material.needsUpdate = true;
+      }
+
+      // 添加新场景的元素
+      if (targetState.markers) scene.add(targetState.markers);
+      if (targetState.lines) scene.add(targetState.lines);
+      if (targetState.css3D) {
+        document.body.appendChild(css3Renderer.domElement);
+      }
+
+      currentScene = targetScene;
+      console.log(`Switched to ${targetScene} successfully!`);
+    });
+  };
+
+  // 统一的点击事件处理
   window.addEventListener("click", (event) => {
-    // 1. 获取鼠标标准化坐标（-1到1）
+    // 获取鼠标标准化坐标
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    // 2. 更新射线投射器
+    // 更新射线投射器
     raycaster.setFromCamera(mouse, camera);
 
-    // 3. 计算与球体的交点
-    const intersects = raycaster.intersectObjects([marksGroup]);
-    console.log("🚀 ~ window.addEventListener ~ intersects:", intersects)
+    // 检测当前场景的标记点
+    const currentMarkers = sceneStates[currentScene].markers;
+    if (!currentMarkers) return;
+
+    const intersects = raycaster.intersectObjects([currentMarkers]);
+    console.log("🚀 ~ click intersects:", intersects);
+
     if (intersects.length > 0) {
-      //修改相机位置移动到mark标记点
-      const targetPoint = intersects[0].point; // 目标点
-      const targetCameraPos = {
-        x: targetPoint.x,
-        y: targetPoint.y, // 相机移动到目标点上方 100 单位
-        z: targetPoint.z + 200,
-      };
-      // 临时禁用 OrbitControls
-      controls.enabled = false;
-      tween = new TWEEN.Tween(camera.position).to(targetCameraPos, 3000)
-        .easing(TWEEN.Easing.Quadratic.InOut)
-        .onUpdate(function () {
-          // camera.lookAt(targetPoint);
-        })
-        .onComplete(() => {
-
-          controls.target.copy(targetPoint);
-          controls.update();
-          // 动画完成后重新启用控制器（可选）
-          controls.enabled = true;
-
-        })
-        .start()
+      // 根据当前场景切换到另一个场景
+      const targetScene = currentScene === 'scene1' ? 'scene2' : 'scene1';
+      switchToScene(targetScene);
     }
   });
 
   //监听鼠标移入事件
   window.addEventListener("mousemove", (event) => {
-    // 1. 获取鼠标标准化坐标（-1到1）
+    // 获取鼠标标准化坐标
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    // 2. 更新射线投射器
+    // 更新射线投射器
     raycaster.setFromCamera(mouse, camera);
 
-    // 3. 计算与球体的交点
-    const intersects = raycaster.intersectObjects([marksGroup]);
-    // console.log("🚀 ~ window.addEventListener ~ intersects:", intersects);
+    // 检测当前场景的标记点
+    const currentMarkers = sceneStates[currentScene].markers;
+    if (!currentMarkers) {
+      renderer.domElement.style.cursor = "auto";
+      return;
+    }
+
+    const intersects = raycaster.intersectObjects([currentMarkers]);
     // 改变鼠标样式
     renderer.domElement.style.cursor =
       intersects.length > 0 ? "pointer" : "auto";
@@ -405,10 +595,20 @@
 
 
     const frameT = clock.getDelta();
-    // 更新播放器相关的时间
+    // 更新T1标记点动画
     mixer.update(frameT);
-    // 更新圆环动画
     circleMixer.update(frameT);
+
+    // 更新T2标记点动画（如果存在）
+    const t2Markers = sceneStates.scene2.markers;
+    if (t2Markers && t2Markers.userData) {
+      if (t2Markers.userData.markerMixer) {
+        t2Markers.userData.markerMixer.update(frameT);
+      }
+      if (t2Markers.userData.circleMixer) {
+        t2Markers.userData.circleMixer.update(frameT);
+      }
+    }
   }
   animate();
 
