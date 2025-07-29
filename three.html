@@ -5,9 +5,11 @@
   <meta charset="utf-8" />
   <title>Three.js全景图查看器</title>
   <style>
+    html,
     body {
       margin: 0;
       height: 100%;
+      width: 100%;
       overflow: hidden;
     }
 
@@ -20,15 +22,6 @@
     /* 添加以下样式 */
     #tag {
       display: block;
-      color: white;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2px 6px;
-      font-weight: 700;
-      font-size: 8px;
-      font-family: Arial, sans-serif;
-      /* user-select: none; */
-      /* pointer-events: auto; */
-      /* cursor: pointer; */
     }
 
     #lineName {
@@ -45,7 +38,7 @@
 
 <body>
   <canvas id="c"></canvas>
-  <canvas id="tag" style="width: 2048px;height: 1024px;">T1</canvas>
+  <!-- <canvas id="tag">T1</canvas> -->
   <div id="lineName">张丰666线</div>
 </body>
 <!-- 引入Three.js核心库 -->
@@ -68,7 +61,8 @@
     CSS3DObject,
   } from "three/addons/renderers/CSS3DRenderer.js";
   import {
-    LineModel
+    LineModel,
+    MarkModel,
   } from "./threeDemoJs/index.js"
   console.log(TWEEN);
   console.log("🚀 ~ LineModel:", LineModel)
@@ -92,6 +86,66 @@
   geometry.scale(-1, 1, 1); // 反转球体
 
   //创建标记点
+  const tagContainer = document.createElement("canvas");
+
+  const markModelConfig = {
+    SphereGeometry: {
+      geometry: {
+        radius: 5,
+        widthSegments: 16,
+        heightSegments: 16,
+      },
+      material: {
+        color: 0xff0000,
+      },
+      position: [
+        300,
+        -172,
+        -337,
+      ],
+      name: "T1",
+      animation: {
+        axis: "y",
+        duration: 2,
+        maxDistance: 10
+      }
+    },
+    CircleGeometry: {
+      geometry: {
+        radius: 5,
+        segments: 32,
+      },
+      material: {
+        color: 0xffffff,
+        transparent: true,
+        side: THREE.DoubleSide
+      },
+      name: "circle",
+      animation: {
+        duration: 2,
+        maxRadiusRatio: 4,
+        initXYZ: [1, 1, 1],
+      }
+    }
+  }
+  const markTagConfig = {
+    domContainer: tagContainer,
+    scale: [40, 20, 5],
+    style: {
+      width: 256,
+      height: 128,
+      pixelRatio: window.devicePixelRatio || 1,
+      textColor: "white",
+      background: "rgba(0, 0, 0, 0.5)",
+      fontStyle: "bold 90px Arial",
+      textAlign: "center",
+      textBaseline: "middle",
+      text: "T1",
+    }
+  }
+
+  const markInstance = new MarkModel(markModelConfig, markTagConfig)
+  console.log("🚀 ~ markInstance:", markInstance.sphere)
   const markerGeometry = new THREE.SphereGeometry(5, 16, 16);
   const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
   const markerPosition = {
@@ -107,6 +161,7 @@
     markerPosition.y,
     markerPosition.z
   );
+  console.log("🚀 ~ markerPos66:", markerPos)
   // markerPos.normalize().multiplyScalar(470); // 稍微靠近相机一点
   marker.position.copy(markerPos);
   const times = [0, 1, 2];
@@ -142,6 +197,7 @@
 
   // 计算圆环位置，将圆环放置在红色标记点下方10个单位
   const circlePos = markerPos.clone();
+  console.log("🚀 ~ circlePos:", circlePos)
   circlePos.y -= 10; // 在Y轴方向下移10个单位
   circle.position.copy(circlePos);
 
@@ -176,24 +232,9 @@
   const circleMixer = new THREE.AnimationMixer(circle);
   circleMixer.clipAction(circleClip).play();
 
-  //创建一条曲线
-  const pointArr = [
-    new THREE.Vector3(-1128, 414, -2748),
-    new THREE.Vector3(570, 445, -2911),
-    new THREE.Vector3(1868, 376, -2314),
-  ];
-  //创建线名称
-  const lineNameLabel = document.getElementById("lineName");
-  console.log("🚀 ~ lineNameLabel:", lineNameLabel.style)
-  // HTML元素转化为threejs的CSS2模型对象
-  // const lineNameTag = new CSS3DObject(lineNameLabel);
-  // lineNameTag.position.set(pointArr[1].x, pointArr[1].y, pointArr[1].z);
-  const css3Renderer = new CSS3DRenderer();
-  css3Renderer.setSize(window.innerWidth, window.innerHeight); // 设置CSS2D渲染器尺寸
 
-  css3Renderer.domElement.style.position = "absolute";
-  css3Renderer.domElement.style.top = "0px";
-  css3Renderer.domElement.style.pointerEvents = "none"; // 防止标签拦截鼠标
+  //创建线标签容器
+  const lineNameLabel = document.getElementById("lineName");
   const lineInstance = new LineModel({
     basicMaterial: {
       color: "#00FF41", // 更鲜艳的绿色
@@ -203,37 +244,25 @@
     },
     dataSource: [
       [- 1128, 414, -2748],
-      [- 570, 445, - 2911],
-      [- 1868, 376, - 2314],
+      [570, 445, -2911],
+      [1868, 376, -2314],
     ]
   }, {
     domId: lineNameLabel
   })
 
-
-  // console.log("🚀 ~ lineInstance:", lineInstance.line)
-  // const curve = new THREE.CatmullRomCurve3(pointArr);
-  // const pointsArr = curve.getPoints(600);
-  // const geometryLine = new THREE.BufferGeometry();
-  // //读取坐标数据赋值给几何体顶点
-  // geometryLine.setFromPoints(pointsArr);
-  // // 线材质 - 使用更鲜艳的颜色和更粗的线条
-  // const material = new THREE.LineBasicMaterial({
-  //   color: "#00FF41", // 更鲜艳的绿色
-  //   linewidth: "100", // 增加线条粗细
-  //   transparent: true,
-  //   opacity: 0.9, // 稍微透明以增强视觉效果
-  // });
-  // // 线模型
-  // const line = new THREE.Line(geometryLine, material);
-  // console.log("🚀 ~ line:", line)
-  // const linesGroup = new THREE.Group();
-  // linesGroup.add(line, lineNameTag);
+  const css3Renderer = new CSS3DRenderer();
+  css3Renderer.setSize(window.innerWidth, window.innerHeight); // 设置CSS3D渲染器尺寸
+  css3Renderer.domElement.style.position = "absolute";
+  css3Renderer.domElement.style.top = "0px";
+  css3Renderer.domElement.style.pointerEvents = "none"; // 防止标签拦截鼠标
 
   const linesGroup = lineInstance.group;
 
+
   //创建标签
-  const div = document.getElementById("tag");
+  const div = document.createElement("canvas");
+  // const div = document.getElementById("tag");
 
   //获取canvas上下文
   const context = div.getContext("2d");
@@ -260,12 +289,12 @@
   const texture = new THREE.CanvasTexture(div);
   texture.minFilter = THREE.LinearFilter; // 缩小过滤
   texture.magFilter = THREE.LinearFilter; // 放大过滤
-  texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
+  // texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
   const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
   const sprite = new THREE.Sprite(spriteMaterial);
   sprite.scale.set(40, 20, 5);
   sprite.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
-
+  document.body.appendChild(div);
   // tag.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
 
 
@@ -298,6 +327,7 @@
       const sphere = new THREE.Mesh(geometry, material);
       sphereMesh = sphere; // 保存球体引用
       scene.add(sphere);
+      scene.add(markInstance.marksGroup);
       scene.add(linesGroup);
       scene.add(marksGroup);
 
@@ -443,7 +473,7 @@
   const sceneStates = {
     scene1: {
       texture: "./images/DJI_20250228152043_0001_V.JPG",
-      markers: marksGroup, // T1标记组
+      markers: markInstance.marksGroup, // T1标记组
       lines: linesGroup,
       css3D: true
     },
@@ -465,6 +495,7 @@
     // 移除当前场景的元素
     if (currentState.markers) scene.remove(currentState.markers);
     if (currentState.lines) scene.remove(currentState.lines);
+    console.log("🚀 ~ switchToScene ~ css3Renderer.domElement.parentNode:", css3Renderer.domElement.parentNode, css3Renderer.domElement)
     if (currentState.css3D && css3Renderer.domElement.parentNode) {
       css3Renderer.domElement.parentNode.removeChild(css3Renderer.domElement);
     }
@@ -598,6 +629,7 @@
     const frameT = clock.getDelta();
     // 更新T1标记点动画
     mixer.update(frameT);
+    markInstance.mixer.update(frameT);
     circleMixer.update(frameT);
 
     // 更新T2标记点动画（如果存在）
