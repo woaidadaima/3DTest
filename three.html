@@ -186,8 +186,8 @@
   const lineNameLabel = document.getElementById("lineName");
   console.log("🚀 ~ lineNameLabel:", lineNameLabel.style)
   // HTML元素转化为threejs的CSS2模型对象
-  const lineNameTag = new CSS3DObject(lineNameLabel);
-  lineNameTag.position.set(pointArr[1].x, pointArr[1].y, pointArr[1].z);
+  // const lineNameTag = new CSS3DObject(lineNameLabel);
+  // lineNameTag.position.set(pointArr[1].x, pointArr[1].y, pointArr[1].z);
   const css3Renderer = new CSS3DRenderer();
   css3Renderer.setSize(window.innerWidth, window.innerHeight); // 设置CSS2D渲染器尺寸
 
@@ -207,29 +207,30 @@
       [- 1868, 376, - 2314],
     ]
   }, {
-    domId: 'lineName',
-    window: window
+    domId: lineNameLabel
   })
 
 
-  console.log("🚀 ~ lineInstance:", lineInstance.line)
-  const curve = new THREE.CatmullRomCurve3(pointArr);
-  const pointsArr = curve.getPoints(600);
-  const geometryLine = new THREE.BufferGeometry();
-  //读取坐标数据赋值给几何体顶点
-  geometryLine.setFromPoints(pointsArr);
-  // 线材质 - 使用更鲜艳的颜色和更粗的线条
-  const material = new THREE.LineBasicMaterial({
-    color: "#00FF41", // 更鲜艳的绿色
-    linewidth: "100", // 增加线条粗细
-    transparent: true,
-    opacity: 0.9, // 稍微透明以增强视觉效果
-  });
-  // 线模型
-  const line = new THREE.Line(geometryLine, material);
-  console.log("🚀 ~ line:", line)
-  const linesGroup = new THREE.Group();
-  linesGroup.add(line, lineNameTag);
+  // console.log("🚀 ~ lineInstance:", lineInstance.line)
+  // const curve = new THREE.CatmullRomCurve3(pointArr);
+  // const pointsArr = curve.getPoints(600);
+  // const geometryLine = new THREE.BufferGeometry();
+  // //读取坐标数据赋值给几何体顶点
+  // geometryLine.setFromPoints(pointsArr);
+  // // 线材质 - 使用更鲜艳的颜色和更粗的线条
+  // const material = new THREE.LineBasicMaterial({
+  //   color: "#00FF41", // 更鲜艳的绿色
+  //   linewidth: "100", // 增加线条粗细
+  //   transparent: true,
+  //   opacity: 0.9, // 稍微透明以增强视觉效果
+  // });
+  // // 线模型
+  // const line = new THREE.Line(geometryLine, material);
+  // console.log("🚀 ~ line:", line)
+  // const linesGroup = new THREE.Group();
+  // linesGroup.add(line, lineNameTag);
+
+  const linesGroup = lineInstance.group;
 
   //创建标签
   const div = document.getElementById("tag");
