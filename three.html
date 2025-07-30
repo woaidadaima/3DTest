@@ -19,11 +19,6 @@
       display: block;
     }
 
-    /* 添加以下样式 */
-    #tag {
-      display: block;
-    }
-
     #lineName {
       display: block;
       color: black;
@@ -38,7 +33,6 @@
 
 <body>
   <canvas id="c"></canvas>
-  <!-- <canvas id="tag">T1</canvas> -->
   <div id="lineName">张丰666线</div>
 </body>
 <!-- 引入Three.js核心库 -->
@@ -53,41 +47,25 @@
   </script>
 <script type="module">
   import * as THREE from "three";
-  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-  import { Sky } from "three/addons/objects/Sky.js";
   import * as TWEEN from "@tweenjs/tween.js";
-  import {
-    CSS3DRenderer,
-    CSS3DObject,
-  } from "three/addons/renderers/CSS3DRenderer.js";
   import {
     LineModel,
     MarkModel,
+    SceneControl
   } from "./threeDemoJs/index.js"
-  console.log(TWEEN);
-  console.log("🚀 ~ LineModel:", LineModel)
 
-  // 初始化场景
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(
-    80,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    20000
-  );
-  const canvas = document.querySelector("#c");
-  const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+  // 初始化场景控制器
+  const sceneController = new SceneControl({
+    camera: {
+      fov: 80,
+      near: 0.1,
+      far: 20000,
+      position: { x: 6000, y: 6000, z: 6000 }
+    }
+  });
 
-  scene.background = new THREE.Color(0xC1DBFE); // 深蓝色背景
-
-
-  // 创建全景球体
-  const geometry = new THREE.SphereGeometry(3000, 128, 64);
-  geometry.scale(-1, 1, 1); // 反转球体
-
-  //创建标记点
+  //创建场景一标记点
   const tagContainer = document.createElement("canvas");
-
   const markModelConfig = {
     SphereGeometry: {
       geometry: {
@@ -143,97 +121,9 @@
       text: "T1",
     }
   }
-
   const markInstance = new MarkModel(markModelConfig, markTagConfig)
-  console.log("🚀 ~ markInstance:", markInstance.sphere)
-  const markerGeometry = new THREE.SphereGeometry(5, 16, 16);
-  const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-  const markerPosition = {
-    x: 326,
-    y: -172,
-    z: -337,
-  };
-  const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-  marker.name = "T1";
-  // 确保标记点在全景球体内部
-  const markerPos = new THREE.Vector3(
-    markerPosition.x,
-    markerPosition.y,
-    markerPosition.z
-  );
-  console.log("🚀 ~ markerPos66:", markerPos)
-  // markerPos.normalize().multiplyScalar(470); // 稍微靠近相机一点
-  marker.position.copy(markerPos);
-  const times = [0, 1, 2];
-  const values = [
-    markerPos.x,
-    markerPos.y,
-    markerPos.z,
-    markerPos.x,
-    markerPos.y + 10,
-    markerPos.z,
-    markerPos.x,
-    markerPos.y,
-    markerPos.z,
-  ];
-  const posKF = new THREE.KeyframeTrack("T1.position", times, values);
-  const clip = new THREE.AnimationClip("test", 2, [posKF]);
-  const mixer = new THREE.AnimationMixer(marker);
-  mixer.clipAction(clip).play();
-  const clock = new THREE.Clock();
 
-  //创建标记点下方圆环
-  const markerGeometry1 = new THREE.CircleGeometry(5, 32);
-  // 修改材质为白色透明
-  const markerMaterial1 = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    side: THREE.DoubleSide, //两面可见
-    // opacity: 0.8
-  });
-  const circle = new THREE.Mesh(markerGeometry1, markerMaterial1);
-  circle.name = "circle"; // 给圆环命名，用于动画
-  console.log("🚀 ~ circle:", circle);
-
-  // 计算圆环位置，将圆环放置在红色标记点下方10个单位
-  const circlePos = markerPos.clone();
-  console.log("🚀 ~ circlePos:", circlePos)
-  circlePos.y -= 10; // 在Y轴方向下移10个单位
-  circle.position.copy(circlePos);
-
-  // 设置圆环的旋转，让它朝向屏幕上方，同时保持圆形可见
-  // 绕X轴旋转-60度，让圆环倾斜朝向相机
-  circle.rotation.x = -Math.PI / 2; // -60度
-  // 可以根据需要微调Y轴和Z轴的旋转
-  circle.rotation.y = 0;
-  circle.rotation.z = 0;
-
-  // 创建圆环的半径变化动画
-  const circleScaleTimes = [0, 1, 2];
-  const circleScaleValues = [
-    1,
-    1,
-    1, // 初始大小 (scale = 1)
-    4,
-    4,
-    4, // 1秒时放大到2倍
-    1,
-    1,
-    1, // 2秒时恢复原始大小
-  ];
-  const circleScaleKF = new THREE.KeyframeTrack(
-    "circle.scale",
-    circleScaleTimes,
-    circleScaleValues
-  );
-  const circleClip = new THREE.AnimationClip("circleScale", 2, [
-    circleScaleKF,
-  ]);
-  const circleMixer = new THREE.AnimationMixer(circle);
-  circleMixer.clipAction(circleClip).play();
-
-
-  //创建线标签容器
+  //创建场景一线标签容器
   const lineNameLabel = document.getElementById("lineName");
   const lineInstance = new LineModel({
     basicMaterial: {
@@ -251,408 +141,91 @@
     domId: lineNameLabel
   })
 
-  const css3Renderer = new CSS3DRenderer();
-  css3Renderer.setSize(window.innerWidth, window.innerHeight); // 设置CSS3D渲染器尺寸
-  css3Renderer.domElement.style.position = "absolute";
-  css3Renderer.domElement.style.top = "0px";
-  css3Renderer.domElement.style.pointerEvents = "none"; // 防止标签拦截鼠标
-
-  const linesGroup = lineInstance.group;
-
-
-  //创建标签
-  const div = document.createElement("canvas");
-  // const div = document.getElementById("tag");
-
-  //获取canvas上下文
-  const context = div.getContext("2d");
-  const pixelRatio = window.devicePixelRatio || 1; // 获取设备像素比
-  const width = 256; // 逻辑宽度
-  const height = 128; // 逻辑高度
-
-  div.width = width * pixelRatio; // 实际像素宽度
-  div.height = height * pixelRatio; // 实际像素高度
-  div.style.width = `${width}px`; // 显示宽度（CSS像素）
-  div.style.height = `${height}px`; // 显示高度
-  // 2. 缩放绘图上下文以匹配高清 Canvas
-  context.scale(pixelRatio, pixelRatio);
-
-  context.fillStyle = "rgba(0, 0, 0, 0.5)";
-  context.fillRect(0, 0, width, height);
-  context.font = "bold 90px Arial";
-  context.fillStyle = "white";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText("T1", width / 2, height / 2);
-
-  // 2. 转换为 Three.js 纹理并创建 Sprite
-  const texture = new THREE.CanvasTexture(div);
-  texture.minFilter = THREE.LinearFilter; // 缩小过滤
-  texture.magFilter = THREE.LinearFilter; // 放大过滤
-  // texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
-  const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-  const sprite = new THREE.Sprite(spriteMaterial);
-  sprite.scale.set(40, 20, 5);
-  sprite.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
-  document.body.appendChild(div);
-  // tag.position.copy(markerPos).add(new THREE.Vector3(0, 30, 0));
-
-
-
-  const marksGroup = new THREE.Group();
-  marksGroup.add(marker, circle, sprite);
-  // group.add(circle);
-  // group.add(tag);
-  console.log("🚀 ~ marksGroup:", marksGroup);
-
-  document.body.appendChild(css3Renderer.domElement);
-
-  windowResize(); // 初始化尺寸
-  // 加载纹理
-  const textureLoader = new THREE.TextureLoader();
-  textureLoader.load(
-    "./images/DJI_20250228152043_0001_V.JPG",
-    function (texture) {
-      console.log(
-        "Loaded texture size:",
-        texture.image.width,
-        texture.image.height
-      );
-      texture.colorSpace = THREE.SRGBColorSpace; // 关键！告诉Three.js这是sRGB色彩
-      texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // 各向异性过滤
-      texture.minFilter = THREE.LinearFilter; // 禁用默认的mipmap压缩
-      texture.magFilter = THREE.LinearFilter; // 禁用放大时的模糊
-      texture.generateMipmaps = false; // 关闭mipmap生成（避免降级）
-      const material = new THREE.MeshBasicMaterial({ map: texture });
-      const sphere = new THREE.Mesh(geometry, material);
-      sphereMesh = sphere; // 保存球体引用
-      scene.add(sphere);
-      scene.add(markInstance.marksGroup);
-      scene.add(linesGroup);
-      scene.add(marksGroup);
-
-    }
-  );
-  camera.position.set(6000, 6000, 6000);
-  camera.lookAt(0, 0, 0);
-  // 视觉效果：地球从小到大出现(透视投影相机远小近大投影规律)
-  let tween2 = new TWEEN.Tween(camera.position)
-
-    .to({ x: 0, y: 0, z: 100 }, 6000)
-    .onUpdate(() => {
-      camera.lookAt(0, 0, 0);
-    })
-    .easing(TWEEN.Easing.Quadratic.Out)
-    .start()
-
-  // camera.position.z = 100;
-
-  // 初始化光线投射器（用于计算点击位置）
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  let tween = null;
-
-  // 场景状态管理
-  let currentScene = 'scene1'; // 当前场景：scene1 或 scene2
-  let sphereMesh = null; // 全景球体引用
-
-  // 创建场景2的标记点T2
-  const createT2Marker = () => {
-    // T2标记点
-    const t2MarkerGeometry = new THREE.SphereGeometry(5, 16, 16);
-    const t2MarkerMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // 绿色
-    const t2Marker = new THREE.Mesh(t2MarkerGeometry, t2MarkerMaterial);
-    t2Marker.name = "T2";
-
-    // T2标记点位置
-    const t2MarkerPosition = {
-      x: -200,
-      y: 50,
-      z: 400,
-    };
-    const t2MarkerPos = new THREE.Vector3(
-      t2MarkerPosition.x,
-      t2MarkerPosition.y,
-      t2MarkerPosition.z
-    );
-    t2MarkerPos.normalize().multiplyScalar(470);
-    t2Marker.position.copy(t2MarkerPos);
-
-    // T2圆环
-    const t2CircleGeometry = new THREE.CircleGeometry(5, 32);
-    const t2CircleMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      side: THREE.DoubleSide,
-    });
-    const t2Circle = new THREE.Mesh(t2CircleGeometry, t2CircleMaterial);
-    t2Circle.name = "t2Circle";
-
-    const t2CirclePos = t2MarkerPos.clone();
-    t2CirclePos.y -= 10;
-    t2Circle.position.copy(t2CirclePos);
-    t2Circle.rotation.x = -Math.PI / 2;
-
-    // T2标签
-    const t2Canvas = document.createElement('canvas');
-    const t2Context = t2Canvas.getContext('2d');
-    const pixelRatio = window.devicePixelRatio || 1;
-    const width = 256;
-    const height = 128;
-
-    t2Canvas.width = width * pixelRatio;
-    t2Canvas.height = height * pixelRatio;
-    t2Canvas.style.width = `${width}px`;
-    t2Canvas.style.height = `${height}px`;
-    t2Context.scale(pixelRatio, pixelRatio);
-
-    t2Context.fillStyle = "rgba(0, 128, 0, 0.5)";
-    t2Context.fillRect(0, 0, width, height);
-    t2Context.font = "bold 90px Arial";
-    t2Context.fillStyle = "white";
-    t2Context.textAlign = "center";
-    t2Context.textBaseline = "middle";
-    t2Context.fillText("T2", width / 2, height / 2);
-
-    const t2Texture = new THREE.CanvasTexture(t2Canvas);
-    t2Texture.minFilter = THREE.LinearFilter;
-    t2Texture.magFilter = THREE.LinearFilter;
-    t2Texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    const t2SpriteMaterial = new THREE.SpriteMaterial({ map: t2Texture });
-    const t2Sprite = new THREE.Sprite(t2SpriteMaterial);
-    t2Sprite.scale.set(40, 20, 5);
-    t2Sprite.position.copy(t2MarkerPos).add(new THREE.Vector3(0, 30, 0));
-
-    // T2标记点动画
-    const t2Times = [0, 1, 2];
-    const t2Values = [
-      t2MarkerPos.x,
-      t2MarkerPos.y,
-      t2MarkerPos.z,
-      t2MarkerPos.x,
-      t2MarkerPos.y + 10,
-      t2MarkerPos.z,
-      t2MarkerPos.x,
-      t2MarkerPos.y,
-      t2MarkerPos.z,
-    ];
-    const t2PosKF = new THREE.KeyframeTrack("T2.position", t2Times, t2Values);
-    const t2Clip = new THREE.AnimationClip("t2Test", 2, [t2PosKF]);
-    const t2Mixer = new THREE.AnimationMixer(t2Marker);
-    t2Mixer.clipAction(t2Clip).play();
-
-    // T2圆环缩放动画
-    const t2CircleScaleTimes = [0, 1, 2];
-    const t2CircleScaleValues = [
-      1, 1, 1, // 初始大小
-      4, 4, 4, // 1秒时放大到4倍
-      1, 1, 1, // 2秒时恢复原始大小
-    ];
-    const t2CircleScaleKF = new THREE.KeyframeTrack(
-      "t2Circle.scale",
-      t2CircleScaleTimes,
-      t2CircleScaleValues
-    );
-    const t2CircleClip = new THREE.AnimationClip("t2CircleScale", 2, [
-      t2CircleScaleKF,
-    ]);
-    const t2CircleMixer = new THREE.AnimationMixer(t2Circle);
-    t2CircleMixer.clipAction(t2CircleClip).play();
-
-    const t2Group = new THREE.Group();
-    t2Group.add(t2Marker, t2Circle, t2Sprite);
-    // 将动画混合器添加到组的userData中，以便在动画循环中更新
-    t2Group.userData = {
-      markerMixer: t2Mixer,
-      circleMixer: t2CircleMixer
-    };
-    return t2Group;
-  };
-
-  // 场景状态定义
-  const sceneStates = {
-    scene1: {
-      texture: "./images/DJI_20250228152043_0001_V.JPG",
-      markers: markInstance.marksGroup, // T1标记组
-      lines: linesGroup,
-      css3D: true
+  //创建场景2标记点
+  const tagContainerScene2 = document.createElement("canvas");
+  const markModelConfigScene2 = {
+    SphereGeometry: {
+      geometry: {
+        radius: 5,
+        widthSegments: 16,
+        heightSegments: 16,
+      },
+      material: {
+        color: 0x00ff00,
+      },
+      position: [
+        -150,
+        50,
+        400,
+      ],
+      name: "T2",
+      animation: {
+        axis: "y",
+        duration: 2,
+        maxDistance: 10
+      }
     },
-    scene2: {
-      texture: "./images/HMSH全景_00635_.png",
-      markers: createT2Marker(), // T2标记组
-      lines: null,
-      css3D: false
-    }
-  };
-
-  // 切换场景函数
-  const switchToScene = (targetScene) => {
-    if (currentScene === targetScene) return;
-
-    const currentState = sceneStates[currentScene];
-    const targetState = sceneStates[targetScene];
-
-    // 移除当前场景的元素
-    if (currentState.markers) scene.remove(currentState.markers);
-    if (currentState.lines) scene.remove(currentState.lines);
-    console.log("🚀 ~ switchToScene ~ css3Renderer.domElement.parentNode:", css3Renderer.domElement.parentNode, css3Renderer.domElement)
-    if (currentState.css3D && css3Renderer.domElement.parentNode) {
-      css3Renderer.domElement.parentNode.removeChild(css3Renderer.domElement);
-    }
-
-    // 加载新场景的纹理
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load(targetState.texture, function (newTexture) {
-      console.log(`Loading ${targetScene} panorama texture...`);
-      newTexture.colorSpace = THREE.SRGBColorSpace;
-      newTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      newTexture.minFilter = THREE.LinearFilter;
-      newTexture.magFilter = THREE.LinearFilter;
-      newTexture.generateMipmaps = false;
-
-      // 更新球体纹理
-      if (sphereMesh) {
-        sphereMesh.material.map = newTexture;
-        sphereMesh.material.needsUpdate = true;
+    CircleGeometry: {
+      geometry: {
+        radius: 5,
+        segments: 32,
+      },
+      material: {
+        color: 0xffffff,
+        transparent: true,
+        side: THREE.DoubleSide
+      },
+      name: "circle",
+      animation: {
+        duration: 2,
+        maxRadiusRatio: 4,
+        initXYZ: [1, 1, 1],
       }
-
-      // 添加新场景的元素
-      if (targetState.markers) scene.add(targetState.markers);
-      if (targetState.lines) scene.add(targetState.lines);
-      if (targetState.css3D) {
-        document.body.appendChild(css3Renderer.domElement);
-      }
-
-      currentScene = targetScene;
-      console.log(`Switched to ${targetScene} successfully!`);
-    });
-  };
-
-  // 统一的点击事件处理
-  window.addEventListener("click", (event) => {
-    // 获取鼠标标准化坐标
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    // 更新射线投射器
-    raycaster.setFromCamera(mouse, camera);
-
-    // 检测当前场景的标记点
-    const currentMarkers = sceneStates[currentScene].markers;
-    if (!currentMarkers) return;
-
-    const intersects = raycaster.intersectObjects([currentMarkers]);
-    console.log("🚀 ~ click intersects:", intersects);
-
-    if (intersects.length > 0) {
-      // 根据当前场景切换到另一个场景
-      const targetScene = currentScene === 'scene1' ? 'scene2' : 'scene1';
-      switchToScene(targetScene);
     }
+  }
+  const markTagConfigScene2 = {
+    domContainer: tagContainerScene2,
+    scale: [40, 20, 5],
+    style: {
+      width: 256,
+      height: 128,
+      pixelRatio: window.devicePixelRatio || 1,
+      textColor: "white",
+      background: "rgba(0, 0, 0, 0.5)",
+      fontStyle: "bold 90px Arial",
+      textAlign: "center",
+      textBaseline: "middle",
+      text: "T2",
+    }
+  }
+  const markInstanceScene2 = new MarkModel(markModelConfigScene2, markTagConfigScene2)
+
+  // 添加场景配置
+  sceneController.addScene('scene1', {
+    texture: "./images/DJI_20250228152043_0001_V.JPG",
+    markers: markInstance.marksGroup,
+    lines: lineInstance.group,
+    css3D: true
   });
 
-  //监听鼠标移入事件
-  window.addEventListener("mousemove", (event) => {
-    // 获取鼠标标准化坐标
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    // 更新射线投射器
-    raycaster.setFromCamera(mouse, camera);
-
-    // 检测当前场景的标记点
-    const currentMarkers = sceneStates[currentScene].markers;
-    if (!currentMarkers) {
-      renderer.domElement.style.cursor = "auto";
-      return;
-    }
-
-    const intersects = raycaster.intersectObjects([currentMarkers]);
-    // 改变鼠标样式
-    renderer.domElement.style.cursor =
-      intersects.length > 0 ? "pointer" : "auto";
+  sceneController.addScene('scene2', {
+    texture: "./images/HMSH全景_00635_.png",
+    markers: markInstanceScene2.marksGroup,
+    lines: null,
+    css3D: false
   });
-  // 添加轨道控制器
-  const controls = new OrbitControls(camera, renderer.domElement);
 
-  controls.mouseButtons = {
-    LEFT: THREE.MOUSE.ROTATE,
-    MIDDLE: THREE.MOUSE.DOLLY,
-    RIGHT: THREE.MOUSE.PAN,
-  };
+  // 添加动画混合器
+  sceneController.addAnimationMixer(markInstance.mixer);
+  sceneController.addAnimationMixer(markInstanceScene2.mixer);
+  // 加载初始场景
+  sceneController.loadInitialScene('scene1', "./images/DJI_20250228152043_0001_V.JPG");
 
-  controls.enableZoom = true; // 启用缩放
-  controls.zoomSpeed = 1.5;
-  controls.enablePan = false; // 禁用平移
-  controls.minDistance = 0.5; // 最小缩放距离
-  controls.maxDistance = 1500; // 最大缩放距离
-  // 限制俯仰角度，防止看到极点
-  controls.minPolarAngle = Math.PI / 8;
-  controls.maxPolarAngle = Math.PI - Math.PI / 8;
+  // 添加相机入场动画
+  sceneController.animateCamera({ x: 0, y: 0, z: 100 }, 6000);
 
-  function resizeRendererToDisplaySize(renderer) {
-    const canvas = renderer.domElement;
-
-    const width = canvas.clientWidth * window.devicePixelRatio;
-
-    const height = canvas.clientHeight * window.devicePixelRatio;
-
-
-    const needResize = canvas.width !== width || canvas.height !== height;
-    if (needResize) {
-      renderer.setSize(width, height, false);
-    }
-    return needResize;
-  }
-
-  // 动画循环
-  function animate() {
-    if (resizeRendererToDisplaySize(renderer)) {
-      const canvas = renderer.domElement;
-      camera.aspect = canvas.clientWidth / canvas.clientHeight;
-      camera.updateProjectionMatrix();
-      css3Renderer.setSize(canvas.clientWidth, canvas.clientHeight); // 同步 CSS2D 尺寸
-    }
-    tween2.update();
-    if (tween) {
-      tween.update();
-    }
-    // controls.update(); // 更新控制器
-    renderer.render(scene, camera);
-
-    css3Renderer.render(scene, camera); // 渲染 CSS2D 标签
-
-    requestAnimationFrame(animate);
-
-
-
-    const frameT = clock.getDelta();
-    // 更新T1标记点动画
-    mixer.update(frameT);
-    markInstance.mixer.update(frameT);
-    circleMixer.update(frameT);
-
-    // 更新T2标记点动画（如果存在）
-    const t2Markers = sceneStates.scene2.markers;
-    if (t2Markers && t2Markers.userData) {
-      if (t2Markers.userData.markerMixer) {
-        t2Markers.userData.markerMixer.update(frameT);
-      }
-      if (t2Markers.userData.circleMixer) {
-        t2Markers.userData.circleMixer.update(frameT);
-      }
-    }
-  }
-  animate();
-
-  function windowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight, false);
-    css3Renderer.setSize(window.innerWidth, window.innerHeight); // 同步CSS2D渲染器尺寸
-  }
-  // 响应式调整
-  window.addEventListener("resize", windowResize);
+  // 开始动画循环
+  sceneController.startAnimation();
 </script>
 
 </html>
