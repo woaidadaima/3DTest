@@ -16,10 +16,10 @@ export class SceneControl {
         fov: 80,
         near: 0.1,
         far: 20000,
-        position: { x: 0, y: 0, z: 100 }
+        position: { x: 0, y: 0, z: 100 },
       },
-      sceneContainerId:"c",
-      background: 0xC1DBFE,
+      sceneContainerId: "c",
+      background: 0xc1dbfe,
       controls: {
         enableZoom: true,
         zoomSpeed: 1.5,
@@ -27,11 +27,11 @@ export class SceneControl {
         minDistance: 0.5,
         maxDistance: 1500,
         minPolarAngle: Math.PI / 8,
-        maxPolarAngle: Math.PI - Math.PI / 8
+        maxPolarAngle: Math.PI - Math.PI / 8,
       },
-      ...config
+      ...config,
     };
-    
+
     // 核心对象
     this.scene = null;
     this.camera = null;
@@ -39,23 +39,23 @@ export class SceneControl {
     this.css3Renderer = null;
     this.controls = null;
     this.clock = new THREE.Clock();
-    
+
     // 场景管理
-    this.currentScene = 'scene1';
+    this.currentScene = "scene1";
     this.sceneStates = {};
     this.sphereModel = null;
-    
+
     // 交互
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
-    
+
     // 动画
     this.animationMixers = [];
     this.tweens = [];
-    
+
     this.init();
   }
-  
+
   /**
    * 初始化场景、相机、渲染器等
    */
@@ -68,7 +68,7 @@ export class SceneControl {
     this.initSphereModel();
     this.bindEvents();
   }
-  
+
   /**
    * 初始化场景
    */
@@ -76,7 +76,7 @@ export class SceneControl {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(this.config.background);
   }
-  
+
   /**
    * 初始化相机
    */
@@ -87,12 +87,12 @@ export class SceneControl {
       this.config.camera.near,
       this.config.camera.far
     );
-    
+
     const pos = this.config.camera.position;
     this.camera.position.set(pos.x, pos.y, pos.z);
     this.camera.lookAt(0, 0, 0);
   }
-  
+
   /**
    * 初始化WebGL渲染器
    */
@@ -101,7 +101,7 @@ export class SceneControl {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
   }
-  
+
   /**
    * 初始化CSS3D渲染器
    */
@@ -113,20 +113,20 @@ export class SceneControl {
     this.css3Renderer.domElement.style.pointerEvents = "none";
     document.body.appendChild(this.css3Renderer.domElement);
   }
-  
+
   /**
    * 初始化轨道控制器
    */
   initControls() {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    
+
     const controlsConfig = this.config.controls;
     this.controls.mouseButtons = {
       LEFT: THREE.MOUSE.ROTATE,
       MIDDLE: THREE.MOUSE.DOLLY,
       RIGHT: THREE.MOUSE.PAN,
     };
-    
+
     this.controls.enableZoom = controlsConfig.enableZoom;
     this.controls.zoomSpeed = controlsConfig.zoomSpeed;
     this.controls.enablePan = controlsConfig.enablePan;
@@ -135,14 +135,14 @@ export class SceneControl {
     this.controls.minPolarAngle = controlsConfig.minPolarAngle;
     this.controls.maxPolarAngle = controlsConfig.maxPolarAngle;
   }
-  
+
   /**
    * 初始化球体模型
    */
   initSphereModel() {
     this.sphereModel = new SphereModel();
   }
-  
+
   /**
    * 添加场景状态
    * @param {string} sceneId - 场景ID
@@ -155,10 +155,10 @@ export class SceneControl {
       lines: sceneConfig.lines || null,
       css3D: sceneConfig.css3D !== false,
       onEnter: sceneConfig.onEnter || null,
-      onExit: sceneConfig.onExit || null
+      onExit: sceneConfig.onExit || null,
     };
   }
-  
+
   /**
    * 切换到指定场景
    * @param {string} targetScene - 目标场景ID
@@ -166,53 +166,88 @@ export class SceneControl {
    */
   async switchToScene(targetScene) {
     if (this.currentScene === targetScene) return;
-    
+
     const currentState = this.sceneStates[this.currentScene];
     const targetState = this.sceneStates[targetScene];
-    
+
     if (!targetState) {
       console.error(`Scene '${targetScene}' not found`);
       return;
     }
-    
-    // 执行当前场景退出回调
-    if (currentState && currentState.onExit) {
-      currentState.onExit();
-    }
-    
-    // 移除当前场景元素
-    if (currentState) {
-      if (currentState.markers) this.scene.remove(currentState.markers);
-      if (currentState.lines) this.scene.remove(currentState.lines);
-      if (currentState.css3D && this.css3Renderer.domElement.parentNode) {
-        this.css3Renderer.domElement.parentNode.removeChild(this.css3Renderer.domElement);
-      }
-    }
-    
-    try {
-      // 加载新场景纹理
-      await this.sphereModel.updateTexture(targetState.texture);
-      
-      // 添加新场景元素
-      if (targetState.markers) this.scene.add(targetState.markers);
-      if (targetState.lines) this.scene.add(targetState.lines);
-      if (targetState.css3D) {
-        document.body.appendChild(this.css3Renderer.domElement);
-      }
-      
-      this.currentScene = targetScene;
-      
-      // 执行新场景进入回调
-      if (targetState.onEnter) {
-        targetState.onEnter();
-      }
-      
-      console.log(`Switched to ${targetScene} successfully!`);
-    } catch (error) {
-      console.error(`Failed to switch to ${targetScene}:`, error);
-    }
+    // 保存当前透明度
+    const originalOpacity = this.sphereModel.material.opacity;
+    const originalTransparent = this.sphereModel.material.transparent;
+
+    // 淡出动画
+    const fadeOutTween = new TWEEN.Tween({ opacity: originalOpacity })
+      .to({ opacity: 0.0 }, 1000)
+      .onStart(() => {
+        // 启用透明度
+        this.sphereModel.material.transparent = true;
+      })
+      .onUpdate((obj) => {
+        this.sphereModel.material.opacity = obj.opacity;
+      })
+      .onComplete(async () => {
+        try {
+          // 执行当前场景退出回调
+          if (currentState && currentState.onExit) {
+            currentState.onExit();
+          }
+
+          // 移除当前场景元素
+          if (currentState) {
+            if (currentState.markers) this.scene.remove(currentState.markers);
+            if (currentState.lines) this.scene.remove(currentState.lines);
+            if (currentState.css3D && this.css3Renderer.domElement.parentNode) {
+              this.css3Renderer.domElement.parentNode.removeChild(
+                this.css3Renderer.domElement
+              );
+            }
+          }
+
+          // 加载新场景纹理
+          await this.sphereModel.updateTexture(targetState.texture);
+
+          // 添加新场景元素
+          if (targetState.markers) this.scene.add(targetState.markers);
+          if (targetState.lines) this.scene.add(targetState.lines);
+          if (targetState.css3D) {
+            document.body.appendChild(this.css3Renderer.domElement);
+          }
+
+          this.currentScene = targetScene;
+
+          // 执行新场景进入回调
+          if (targetState.onEnter) {
+            targetState.onEnter();
+          }
+
+          // 淡入动画
+          const fadeInTween = new TWEEN.Tween({ opacity: 0.0 })
+            .to({ opacity: originalOpacity }, 1000)
+            .onUpdate((obj) => {
+              this.sphereModel.material.opacity = obj.opacity;
+            })
+            .onComplete(() => {
+              // 恢复原始透明度设置
+              this.sphereModel.material.transparent = originalTransparent;
+              this.sphereModel.material.opacity = originalOpacity;
+            })
+            .start();
+
+          this.tweens.push(fadeInTween);
+        } catch (error) {
+          console.error(`Failed to switch to ${targetScene}:`, error);
+          // 恢复原始状态
+          this.sphereModel.material.transparent = originalTransparent;
+          this.sphereModel.material.opacity = originalOpacity;
+        }
+      })
+      .start();
+    this.tweens.push(fadeOutTween);
   }
-  
+
   /**
    * 加载初始场景
    * @param {string} sceneId - 场景ID
@@ -222,7 +257,7 @@ export class SceneControl {
     try {
       const { mesh } = await this.sphereModel.loadTexture(texturePath);
       this.scene.add(mesh);
-      
+
       // 添加初始场景的其他元素
       const sceneState = this.sceneStates[sceneId];
       if (sceneState) {
@@ -230,20 +265,24 @@ export class SceneControl {
         if (sceneState.lines) this.scene.add(sceneState.lines);
         if (sceneState.onEnter) sceneState.onEnter();
       }
-      
+
       this.currentScene = sceneId;
     } catch (error) {
-      console.error('Failed to load initial scene:', error);
+      console.error("Failed to load initial scene:", error);
     }
   }
-  
+
   /**
    * 添加相机动画
    * @param {Object} targetPosition - 目标位置
    * @param {number} duration - 动画时长
    * @param {Function} easing - 缓动函数
    */
-  animateCamera(targetPosition, duration = 6000, easing = TWEEN.Easing.Quadratic.Out) {
+  animateCamera(
+    targetPosition,
+    duration = 6000,
+    easing = TWEEN.Easing.Quadratic.Out
+  ) {
     const tween = new TWEEN.Tween(this.camera.position)
       .to(targetPosition, duration)
       .onUpdate(() => {
@@ -251,11 +290,11 @@ export class SceneControl {
       })
       .easing(easing)
       .start();
-    
+
     this.tweens.push(tween);
     return tween;
   }
-  
+
   /**
    * 添加动画混合器
    * @param {THREE.AnimationMixer} mixer - 动画混合器
@@ -263,7 +302,7 @@ export class SceneControl {
   addAnimationMixer(mixer) {
     this.animationMixers.push(mixer);
   }
-  
+
   /**
    * 绑定事件监听器
    */
@@ -275,47 +314,48 @@ export class SceneControl {
     // 窗口大小调整事件
     window.addEventListener("resize", this.onWindowResize.bind(this));
   }
-  
+
   /**
    * 鼠标点击事件处理
    */
   onMouseClick(event) {
     this.updateMousePosition(event);
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    
+
     const currentState = this.sceneStates[this.currentScene];
     if (!currentState || !currentState.markers) return;
-    
+
     const intersects = this.raycaster.intersectObjects([currentState.markers]);
-    
+
     if (intersects.length > 0) {
       // 触发场景切换
       const sceneIds = Object.keys(this.sceneStates);
       const currentIndex = sceneIds.indexOf(this.currentScene);
       const nextIndex = (currentIndex + 1) % sceneIds.length;
       const targetScene = sceneIds[nextIndex];
-      
+
       this.switchToScene(targetScene);
     }
   }
-  
+
   /**
    * 鼠标移动事件处理
    */
   onMouseMove(event) {
     this.updateMousePosition(event);
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    
+
     const currentState = this.sceneStates[this.currentScene];
     if (!currentState || !currentState.markers) {
       this.renderer.domElement.style.cursor = "auto";
       return;
     }
-    
+
     const intersects = this.raycaster.intersectObjects([currentState.markers]);
-    this.renderer.domElement.style.cursor = intersects.length > 0 ? "pointer" : "auto";
+    this.renderer.domElement.style.cursor =
+      intersects.length > 0 ? "pointer" : "auto";
   }
-  
+
   /**
    * 更新鼠标位置
    */
@@ -323,7 +363,7 @@ export class SceneControl {
     this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   }
-  
+
   /**
    * 窗口大小调整事件处理
    */
@@ -333,25 +373,25 @@ export class SceneControl {
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.css3Renderer.setSize(window.innerWidth, window.innerHeight);
   }
-  
+
   /**
    * 渲染循环
    */
   render() {
     // 更新动画
     const deltaTime = this.clock.getDelta();
-    
+
     // 更新Tween动画
-    this.tweens.forEach(tween => tween.update());
-    
+    this.tweens.forEach((tween) => tween.update());
+
     // 更新动画混合器
-    this.animationMixers.forEach(mixer => mixer.update(deltaTime));
-    
+    this.animationMixers.forEach((mixer) => mixer.update(deltaTime));
+
     // 渲染场景
     this.renderer.render(this.scene, this.camera);
     this.css3Renderer.render(this.scene, this.camera);
   }
-  
+
   /**
    * 开始动画循环
    */
@@ -362,7 +402,7 @@ export class SceneControl {
     };
     animate();
   }
-  
+
   /**
    * 销毁资源
    */
@@ -371,15 +411,17 @@ export class SceneControl {
     if (this.sphereModel) {
       this.sphereModel.dispose();
     }
-    
+
     // 移除事件监听器
     window.removeEventListener("click", this.onMouseClick);
     window.removeEventListener("mousemove", this.onMouseMove);
     window.removeEventListener("resize", this.onWindowResize);
-    
+
     // 销毁渲染器
     if (this.css3Renderer && this.css3Renderer.domElement.parentNode) {
-      this.css3Renderer.domElement.parentNode.removeChild(this.css3Renderer.domElement);
+      this.css3Renderer.domElement.parentNode.removeChild(
+        this.css3Renderer.domElement
+      );
     }
   }
 }
