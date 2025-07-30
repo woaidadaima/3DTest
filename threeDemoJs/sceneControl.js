@@ -22,10 +22,10 @@ export class SceneControl {
       background: 0xc1dbfe,
       controls: {
         enableZoom: true,
-        zoomSpeed: 1.5,
+        zoomSpeed: 3,
         enablePan: false,
         minDistance: 0.5,
-        maxDistance: 1500,
+        maxDistance: 3000,
         minPolarAngle: Math.PI / 8,
         maxPolarAngle: Math.PI - Math.PI / 8,
       },
@@ -54,6 +54,84 @@ export class SceneControl {
     this.tweens = [];
 
     this.init();
+  }
+
+  /**
+   * 平滑移动相机朝向目标点（不锁定视角）
+   * @param {THREE.Vector3} targetPosition - 目标位置
+   * @param {number} duration - 动画时长
+   */
+  tweenControlCenter(targetPosition, duration = 1000) {
+    // 计算从相机位置到目标点的方向向量
+    const direction = new THREE.Vector3()
+      .subVectors(targetPosition, this.camera.position)
+      .normalize();
+
+    // 将方向向量转换为球面坐标
+    const spherical = new THREE.Spherical();
+    spherical.setFromVector3(direction);
+
+    // 获取当前相机的朝向（球面坐标）
+    const currentDirection = new THREE.Vector3(0, 0, -1);
+    currentDirection.applyQuaternion(this.camera.quaternion);
+    const currentSpherical = new THREE.Spherical();
+    currentSpherical.setFromVector3(currentDirection);
+
+    // 处理角度跳跃问题（确保选择最短路径）
+    let targetTheta = spherical.theta;
+    let targetPhi = spherical.phi;
+
+    // 处理 theta 的跳跃（水平角度）
+    const thetaDiff = targetTheta - currentSpherical.theta;
+    if (Math.abs(thetaDiff) > Math.PI) {
+      if (thetaDiff > 0) {
+        targetTheta -= 2 * Math.PI;
+      } else {
+        targetTheta += 2 * Math.PI;
+      }
+    }
+
+    // 创建动画对象
+    const animationData = {
+      theta: currentSpherical.theta,
+      phi: currentSpherical.phi,
+    };
+
+    // 使用 TWEEN 进行平滑插值
+    const tween = new TWEEN.Tween(animationData)
+      .to(
+        {
+          theta: targetTheta,
+          phi: targetPhi,
+        },
+        duration
+      )
+      .onUpdate(() => {
+        // 从球面坐标创建方向向量
+        const newDirection = new THREE.Vector3();
+        newDirection.setFromSphericalCoords(
+          1,
+          animationData.phi,
+          animationData.theta
+        );
+
+        // 计算目标点（相机位置 + 方向向量）
+        const lookAtTarget = new THREE.Vector3().addVectors(
+          this.camera.position,
+          newDirection
+        );
+
+        // 让相机看向目标点，但不改变 OrbitControls 的 target
+        this.camera.lookAt(lookAtTarget);
+        this.controls.target.copy(lookAtTarget);
+      })
+      .onComplete(() => {
+        this.controls.update();
+      })
+      .easing(TWEEN.Easing.Cubic.Out) // 使用更自然的缓动函数
+      .start();
+
+    this.tweens.push(tween);
   }
 
   /**
@@ -333,19 +411,24 @@ export class SceneControl {
     const currentState = this.sceneStates[this.currentScene];
     if (!currentState || !currentState.markers) return;
 
-    const intersects = this.raycaster.intersectObjects([
-      currentState.markers,
-      currentState.points,
-    ]);
+    // 构建需要检测的对象数组，过滤掉 null/undefined
+    const intersectObjects = [currentState.markers, currentState.points].filter(
+      (obj) => obj !== null && obj !== undefined
+    );
+
+    const intersects = this.raycaster.intersectObjects(intersectObjects);
 
     if (intersects.length > 0) {
-      // 触发场景切换
-      const sceneIds = Object.keys(this.sceneStates);
-      const currentIndex = sceneIds.indexOf(this.currentScene);
-      const nextIndex = (currentIndex + 1) % sceneIds.length;
-      const targetScene = sceneIds[nextIndex];
-
-      this.switchToScene(targetScene);
+      if (intersects[0].object.name === "point") {
+        // 使用平滑动画转向目标点，不锁定视角
+        this.tweenControlCenter(intersects[0].object.position, 1000);
+      } else {
+        // 切换场景逻辑
+        const sceneIds = Object.keys(this.sceneStates);
+        const currentIndex = sceneIds.indexOf(this.currentScene);
+        const targetScene = sceneIds[(currentIndex + 1) % sceneIds.length];
+        this.switchToScene(targetScene);
+      }
     }
   }
 
@@ -363,15 +446,14 @@ export class SceneControl {
       return;
     }
 
-    const intersects = this.raycaster.intersectObjects([
-      currentState.markers,
-      currentState.points,
-    ]);
-    console.log(
-      "🚀 ~ SceneControl ~ onMouseMove ~ intersects:",
-      intersects,
-      currentState.points
+    // 构建需要检测的对象数组，过滤掉 null/undefined
+    const intersectObjects = [currentState.markers, currentState.points].filter(
+      (obj) => obj !== null && obj !== undefined
     );
+
+    const intersects = this.raycaster.intersectObjects(intersectObjects);
+    console.log("🚀 ~ SceneControl ~ onMouseMove ~ intersects:", intersects);
+
     this.renderer.domElement.style.cursor =
       intersects.length > 0 ? "pointer" : "auto";
   }
@@ -424,6 +506,8 @@ export class SceneControl {
     // 渲染场景
     this.renderer.render(this.scene, this.camera);
     this.css3Renderer.render(this.scene, this.camera);
+
+    // this.controls.update();
   }
 
   /**
