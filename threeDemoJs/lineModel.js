@@ -1,36 +1,36 @@
 import * as THREE from "../three/build/three.module.js";
 import { CSS3DObject } from "../three/examples/jsm/renderers/CSS3DRenderer.js";
-
+import { Line2 } from "../three/examples/jsm/lines/Line2.js";
+import { LineMaterial } from "../three/examples/jsm/lines/LineMaterial.js";
+import { LineGeometry } from "../three/examples/jsm/lines/LineGeometry.js";
 class LineModel {
   constructor(lineModelConfig, lineTagConfig) {
     const { basicMaterial, dataSource } = lineModelConfig;
     const { domId: dom } = lineTagConfig;
     this.defaultMaterial = {
       color: "#00FF41", // 更鲜艳的绿色
-      linewidth: "100", // 增加线条粗细
+      linewidth: 1, // 增加线条粗细
       transparent: true,
       opacity: 0.9,
+      worldUnits: true,
     };
     this.line = this.createLine(dataSource, basicMaterial);
     this.tag = this.createTag(dom, dataSource);
     this.group = this.createGroup();
   }
 
-  handleDataSource(dataSource) {
-    if (!(dataSource instanceof Array)) {
+  createLine(dataSource, basicMaterial) {
+    if (!Array.isArray(dataSource)) {
       throw Error("dataSource must be Array");
     }
-    const vec3Array = dataSource.map((item) => new THREE.Vector3(...item));
-    const geometry = new THREE.BufferGeometry();
-    return geometry.setFromPoints(vec3Array);
-  }
-
-  createLine(dataSource, basicMaterial) {
-    const geometry = this.handleDataSource(dataSource);
-    const material = new THREE.LineBasicMaterial(
-      basicMaterial ?? this.defaultMaterial
-    );
-    return new THREE.Line(geometry, material);
+    const points = dataSource.flat(); // 将三维坐标数组展平
+    const geometry = new LineGeometry();
+    geometry.setPositions(points);
+    const material = new LineMaterial({
+      ...this.defaultMaterial,
+      ...basicMaterial, // 合并默认材质和传入的材质
+    });
+    return new Line2(geometry, material);
   }
 
   createTag(dom, dataSource) {

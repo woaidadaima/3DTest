@@ -129,9 +129,11 @@
   const lineInstance = new LineModel({
     basicMaterial: {
       color: "#00FF41", // 更鲜艳的绿色
-      linewidth: "100", // 增加线条粗细
+      linewidth: 30, // 增加线条粗细
       transparent: true,
-      opacity: 0.9
+      opacity: 0.9,
+      worldUnits: true,
+
     },
     dataSource: [
       [- 1128, 414, -2748],

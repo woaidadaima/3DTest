@@ -99,7 +99,11 @@ export class SceneControl {
   initRenderer() {
     const canvas = document.getElementById(this.config.sceneContainerId);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
-    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+    this.renderer.setSize(
+      window.innerWidth * window.devicePixelRatio,
+      window.innerHeight * window.devicePixelRatio,
+      false
+    );
   }
 
   /**
@@ -386,8 +390,22 @@ export class SceneControl {
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
-    this.css3Renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log(
+      "🚀 ~ SceneControl ~ onWindowResize ~ window.innerWidth:",
+      window.innerWidth,
+      window.devicePixelRatio
+    );
+
+    this.renderer.setSize(
+      window.innerWidth * window.devicePixelRatio,
+      window.innerHeight * window.devicePixelRatio,
+      false
+    );
+    this.css3Renderer.setSize(
+      window.innerWidth * window.devicePixelRatio,
+      window.innerHeight * window.devicePixelRatio,
+      false
+    );
   }
 
   /**
