@@ -11,17 +11,17 @@ export class SphereModel {
       radius: 3000,
       widthSegments: 128,
       heightSegments: 64,
-      ...config
+      ...config,
     };
-    
+
     this.geometry = null;
     this.material = null;
     this.mesh = null;
     this.textureLoader = new THREE.TextureLoader();
-    
+
     this.init();
   }
-  
+
   /**
    * 初始化球体几何体
    */
@@ -34,7 +34,7 @@ export class SphereModel {
     // 反转球体，使纹理显示在内侧
     this.geometry.scale(-1, 1, 1);
   }
-  
+
   /**
    * 加载纹理并创建球体
    * @param {string} texturePath - 纹理图片路径
@@ -48,17 +48,17 @@ export class SphereModel {
         texturePath,
         (texture) => {
           console.log(`Loaded texture: ${texturePath}`);
-          
+
           // 设置纹理属性以获得最佳质量
           texture.colorSpace = THREE.SRGBColorSpace;
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
           texture.generateMipmaps = false;
-          
+
           // 创建材质和网格
           this.material = new THREE.MeshBasicMaterial({ map: texture });
           this.mesh = new THREE.Mesh(this.geometry, this.material);
-          
+
           if (onLoad) onLoad(texture, this.mesh);
           resolve({ texture, mesh: this.mesh });
         },
@@ -71,7 +71,7 @@ export class SphereModel {
       );
     });
   }
-  
+
   /**
    * 更新球体纹理
    * @param {string} texturePath - 新纹理路径
@@ -86,23 +86,23 @@ export class SphereModel {
           newTexture.minFilter = THREE.LinearFilter;
           newTexture.magFilter = THREE.LinearFilter;
           newTexture.generateMipmaps = false;
-          
+
           if (this.material) {
             this.material.map = newTexture;
             this.material.needsUpdate = true;
           }
-          
+
           resolve(newTexture);
         },
         undefined,
         (error) => {
-            console.error(`Failed to load texture: ${texturePath}`, error);
-            reject(error);
-          }
+          console.error(`Failed to load texture: ${texturePath}`, error);
+          reject(error);
+        }
       );
     });
   }
-  
+
   /**
    * 获取球体网格对象
    * @returns {THREE.Mesh} 球体网格
@@ -110,7 +110,7 @@ export class SphereModel {
   getMesh() {
     return this.mesh;
   }
-  
+
   /**
    * 销毁球体资源
    */

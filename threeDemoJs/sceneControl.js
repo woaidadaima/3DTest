@@ -152,6 +152,7 @@ export class SceneControl {
     this.sceneStates[sceneId] = {
       texture: sceneConfig.texture,
       markers: sceneConfig.markers || null,
+      points: sceneConfig.points || null,
       lines: sceneConfig.lines || null,
       css3D: sceneConfig.css3D !== false,
       onEnter: sceneConfig.onEnter || null,
@@ -199,6 +200,7 @@ export class SceneControl {
           if (currentState) {
             if (currentState.markers) this.scene.remove(currentState.markers);
             if (currentState.lines) this.scene.remove(currentState.lines);
+            if (currentState.points) this.scene.remove(currentState.points);
             if (currentState.css3D && this.css3Renderer.domElement.parentNode) {
               this.css3Renderer.domElement.parentNode.removeChild(
                 this.css3Renderer.domElement
@@ -212,6 +214,7 @@ export class SceneControl {
           // 添加新场景元素
           if (targetState.markers) this.scene.add(targetState.markers);
           if (targetState.lines) this.scene.add(targetState.lines);
+          if (targetState.points) this.scene.add(targetState.points);
           if (targetState.css3D) {
             document.body.appendChild(this.css3Renderer.domElement);
           }
@@ -263,6 +266,7 @@ export class SceneControl {
       if (sceneState) {
         if (sceneState.markers) this.scene.add(sceneState.markers);
         if (sceneState.lines) this.scene.add(sceneState.lines);
+        if (sceneState.points) this.scene.add(sceneState.points);
         if (sceneState.onEnter) sceneState.onEnter();
       }
 
@@ -325,7 +329,10 @@ export class SceneControl {
     const currentState = this.sceneStates[this.currentScene];
     if (!currentState || !currentState.markers) return;
 
-    const intersects = this.raycaster.intersectObjects([currentState.markers]);
+    const intersects = this.raycaster.intersectObjects([
+      currentState.markers,
+      currentState.points,
+    ]);
 
     if (intersects.length > 0) {
       // 触发场景切换
@@ -346,12 +353,21 @@ export class SceneControl {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     const currentState = this.sceneStates[this.currentScene];
+
     if (!currentState || !currentState.markers) {
       this.renderer.domElement.style.cursor = "auto";
       return;
     }
 
-    const intersects = this.raycaster.intersectObjects([currentState.markers]);
+    const intersects = this.raycaster.intersectObjects([
+      currentState.markers,
+      currentState.points,
+    ]);
+    console.log(
+      "🚀 ~ SceneControl ~ onMouseMove ~ intersects:",
+      intersects,
+      currentState.points
+    );
     this.renderer.domElement.style.cursor =
       intersects.length > 0 ? "pointer" : "auto";
   }

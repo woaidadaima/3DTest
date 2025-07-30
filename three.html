@@ -51,7 +51,8 @@
   import {
     LineModel,
     MarkModel,
-    SceneControl
+    SceneControl,
+    PointModel
   } from "./threeDemoJs/index.js"
 
   // 初始化场景控制器
@@ -141,6 +142,10 @@
     domId: lineNameLabel
   })
 
+  //创建场景一随机标记点
+  const pointInstance = new PointModel()
+  console.log("🚀 ~ pointInstance:", pointInstance)
+
   //创建场景2标记点
   const tagContainerScene2 = document.createElement("canvas");
   const markModelConfigScene2 = {
@@ -204,6 +209,7 @@
   sceneController.addScene('scene1', {
     texture: "./images/DJI_20250228152043_0001_V.JPG",
     markers: markInstance.marksGroup,
+    points: pointInstance.points,
     lines: lineInstance.group,
     css3D: true
   });
