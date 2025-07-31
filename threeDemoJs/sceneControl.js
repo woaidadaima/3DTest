@@ -1,6 +1,7 @@
 import * as THREE from "../three/build/three.module.js";
 import { OrbitControls } from "../three/examples/jsm/controls/OrbitControls.js";
 import { CSS3DRenderer } from "../three/examples/jsm/renderers/CSS3DRenderer.js";
+import { CSS2DRenderer } from "../three/examples/jsm/renderers/CSS2DRenderer.js";
 import * as TWEEN from "../tween.js-main/dist/tween.esm.js";
 import SphereModel from "./sphereModel.js";
 
@@ -143,6 +144,7 @@ export class SceneControl {
     this.initRenderer();
     this.initControls();
     this.initCSS3DRenderer();
+    this.initCSS2DRenderer();
     this.initSphereModel();
     this.bindEvents();
   }
@@ -197,6 +199,18 @@ export class SceneControl {
   }
 
   /**
+   * 初始化CSS2D渲染器
+   */
+  initCSS2DRenderer() {
+    this.css2Renderer = new CSS2DRenderer();
+    this.css2Renderer.setSize(window.innerWidth, window.innerHeight);
+    this.css2Renderer.domElement.style.position = "absolute";
+    this.css2Renderer.domElement.style.top = "0px";
+    this.css2Renderer.domElement.style.pointerEvents = "none";
+    document.body.appendChild(this.css2Renderer.domElement);
+  }
+
+  /**
    * 初始化轨道控制器
    */
   initControls() {
@@ -237,6 +251,7 @@ export class SceneControl {
       points: sceneConfig.points || null,
       lines: sceneConfig.lines || null,
       css3D: sceneConfig.css3D !== false,
+      css2D: sceneConfig.css2D !== false,
       onEnter: sceneConfig.onEnter || null,
       onExit: sceneConfig.onExit || null,
     };
@@ -288,6 +303,11 @@ export class SceneControl {
                 this.css3Renderer.domElement
               );
             }
+            if (currentState.css2D && this.css2Renderer.domElement.parentNode) {
+              this.css2Renderer.domElement.parentNode.removeChild(
+                this.css2Renderer.domElement
+              );
+            }
           }
 
           // 加载新场景纹理
@@ -299,6 +319,9 @@ export class SceneControl {
           if (targetState.points) this.scene.add(targetState.points);
           if (targetState.css3D) {
             document.body.appendChild(this.css3Renderer.domElement);
+          }
+          if (targetState.css2D) {
+            document.body.appendChild(this.css2Renderer.domElement);
           }
 
           this.currentScene = targetScene;
@@ -452,7 +475,6 @@ export class SceneControl {
     );
 
     const intersects = this.raycaster.intersectObjects(intersectObjects);
-    console.log("🚀 ~ SceneControl ~ onMouseMove ~ intersects:", intersects);
 
     this.renderer.domElement.style.cursor =
       intersects.length > 0 ? "pointer" : "auto";
@@ -506,6 +528,7 @@ export class SceneControl {
     // 渲染场景
     this.renderer.render(this.scene, this.camera);
     this.css3Renderer.render(this.scene, this.camera);
+    this.css2Renderer.render(this.scene, this.camera);
 
     // this.controls.update();
   }

@@ -39,7 +39,7 @@ export default class MarkModel {
     const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
     const sprite = new THREE.Sprite(spriteMaterial);
     sprite.scale.set(...scale);
-    sprite.position.copy(this.position).add(new THREE.Vector3(0, 30, 0));
+    sprite.position.copy(this.position).add(new THREE.Vector3(0, 50, 0));
     return sprite;
   }
 

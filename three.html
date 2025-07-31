@@ -70,9 +70,9 @@
   const markModelConfig = {
     SphereGeometry: {
       geometry: {
-        radius: 5,
-        widthSegments: 16,
-        heightSegments: 16,
+        radius: 10,
+        widthSegments: 32,
+        heightSegments: 32,
       },
       material: {
         color: 0xff0000,
@@ -86,12 +86,12 @@
       animation: {
         axis: "y",
         duration: 2,
-        maxDistance: 10
+        maxDistance: 30
       }
     },
     CircleGeometry: {
       geometry: {
-        radius: 5,
+        radius: 10,
         segments: 32,
       },
       material: {
@@ -153,9 +153,9 @@
   const markModelConfigScene2 = {
     SphereGeometry: {
       geometry: {
-        radius: 5,
-        widthSegments: 16,
-        heightSegments: 16,
+        radius: 10,
+        widthSegments: 32,
+        heightSegments: 32,
       },
       material: {
         color: 0x00ff00,
@@ -169,12 +169,12 @@
       animation: {
         axis: "y",
         duration: 2,
-        maxDistance: 10
+        maxDistance: 30
       }
     },
     CircleGeometry: {
       geometry: {
-        radius: 5,
+        radius: 10,
         segments: 32,
       },
       material: {
@@ -213,14 +213,16 @@
     markers: markInstance.marksGroup,
     points: pointInstance.points,
     lines: lineInstance.group,
-    css3D: true
+    css3D: true,
+    css2D: true,
   });
 
   sceneController.addScene('scene2', {
     texture: "./images/HMSH全景_00635_.png",
     markers: markInstanceScene2.marksGroup,
     lines: null,
-    css3D: false
+    css3D: false,
+    css2D: false,
   });
 
   // 添加动画混合器
