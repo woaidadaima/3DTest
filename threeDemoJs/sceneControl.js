@@ -58,78 +58,37 @@ export class SceneControl {
   }
 
   /**
-   * 平滑移动相机朝向目标点（不锁定视角）
+   * 平滑移动相机朝向目标点
    * @param {THREE.Vector3} targetPosition - 目标位置
    * @param {number} duration - 动画时长
    */
   tweenControlCenter(targetPosition, duration = 1000) {
+    // 保存当前的controls target
+    const currentTarget = this.controls.target.clone();
+    
     // 计算从相机位置到目标点的方向向量
     const direction = new THREE.Vector3()
       .subVectors(targetPosition, this.camera.position)
       .normalize();
-
-    // 将方向向量转换为球面坐标
-    const spherical = new THREE.Spherical();
-    spherical.setFromVector3(direction);
-
-    // 获取当前相机的朝向（球面坐标）
-    const currentDirection = new THREE.Vector3(0, 0, -1);
-    currentDirection.applyQuaternion(this.camera.quaternion);
-    const currentSpherical = new THREE.Spherical();
-    currentSpherical.setFromVector3(currentDirection);
-
-    // 处理角度跳跃问题（确保选择最短路径）
-    let targetTheta = spherical.theta;
-    let targetPhi = spherical.phi;
-
-    // 处理 theta 的跳跃（水平角度）
-    const thetaDiff = targetTheta - currentSpherical.theta;
-    if (Math.abs(thetaDiff) > Math.PI) {
-      if (thetaDiff > 0) {
-        targetTheta -= 2 * Math.PI;
-      } else {
-        targetTheta += 2 * Math.PI;
-      }
-    }
-
-    // 创建动画对象
-    const animationData = {
-      theta: currentSpherical.theta,
-      phi: currentSpherical.phi,
-    };
-
-    // 使用 TWEEN 进行平滑插值
-    const tween = new TWEEN.Tween(animationData)
-      .to(
-        {
-          theta: targetTheta,
-          phi: targetPhi,
-        },
-        duration
-      )
+    
+    // 计算新的target点（相机位置 + 方向向量 * 当前距离）
+    const currentDistance = this.camera.position.distanceTo(currentTarget);
+    const newTarget = new THREE.Vector3()
+      .copy(this.camera.position)
+      .add(direction.multiplyScalar(currentDistance));
+    
+    // 使用TWEEN平滑过渡controls的target
+    const tween = new TWEEN.Tween(currentTarget)
+      .to({
+        x: newTarget.x,
+        y: newTarget.y,
+        z: newTarget.z
+      }, duration)
       .onUpdate(() => {
-        // 从球面坐标创建方向向量
-        const newDirection = new THREE.Vector3();
-        newDirection.setFromSphericalCoords(
-          1,
-          animationData.phi,
-          animationData.theta
-        );
-
-        // 计算目标点（相机位置 + 方向向量）
-        const lookAtTarget = new THREE.Vector3().addVectors(
-          this.camera.position,
-          newDirection
-        );
-
-        // 让相机看向目标点，但不改变 OrbitControls 的 target
-        this.camera.lookAt(lookAtTarget);
-        this.controls.target.copy(lookAtTarget);
-      })
-      .onComplete(() => {
+        this.controls.target.copy(currentTarget);
         this.controls.update();
       })
-      .easing(TWEEN.Easing.Cubic.Out) // 使用更自然的缓动函数
+      .easing(TWEEN.Easing.Cubic.Out)
       .start();
 
     this.tweens.push(tween);
@@ -530,7 +489,7 @@ export class SceneControl {
     this.css3Renderer.render(this.scene, this.camera);
     this.css2Renderer.render(this.scene, this.camera);
 
-    // this.controls.update();
+    this.controls.update();
   }
 
   /**
