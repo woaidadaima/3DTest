@@ -45,6 +45,7 @@ export class SceneControl {
     this.currentScene = "scene1";
     this.sceneStates = {};
     this.sphereModel = null;
+    this.isSceneSwitching = false; // 添加场景切换状态锁
 
     // 交互
     this.raycaster = new THREE.Raycaster();
@@ -108,6 +109,7 @@ export class SceneControl {
     this.initCSS3DRenderer();
     this.initCSS2DRenderer();
     this.initSphereModel();
+    this.initDebouncedMethods();
     this.bindEvents();
   }
 
@@ -226,12 +228,21 @@ export class SceneControl {
    */
   async switchToScene(targetScene) {
     if (this.currentScene === targetScene) return;
+    
+    // 防止并发切换
+    if (this.isSceneSwitching) {
+      console.log('场景正在切换中，忽略此次请求');
+      return;
+    }
+    
+    this.isSceneSwitching = true; // 设置切换状态锁
 
     const currentState = this.sceneStates[this.currentScene];
     const targetState = this.sceneStates[targetScene];
 
     if (!targetState) {
       console.error(`Scene '${targetScene}' not found`);
+      this.isSceneSwitching = false; // 释放锁
       return;
     }
     // 保存当前透明度
@@ -303,6 +314,8 @@ export class SceneControl {
               // 恢复原始透明度设置
               this.sphereModel.material.transparent = originalTransparent;
               this.sphereModel.material.opacity = originalOpacity;
+              // 释放场景切换锁
+              this.isSceneSwitching = false;
             })
             .start();
 
@@ -312,6 +325,8 @@ export class SceneControl {
           // 恢复原始状态
           this.sphereModel.material.transparent = originalTransparent;
           this.sphereModel.material.opacity = originalOpacity;
+          // 释放场景切换锁
+          this.isSceneSwitching = false;
         }
       })
       .start();
@@ -378,11 +393,8 @@ export class SceneControl {
    * 绑定事件监听器
    */
   bindEvents() {
-    // 点击事件
-    window.addEventListener(
-      "click",
-      this.debounce(this.onMouseClick.bind(this), 500)
-    );
+    // 点击事件 - 移除防抖，在具体逻辑中处理
+    window.addEventListener("click", this.onMouseClick.bind(this));
     // 鼠标移动事件
     window.addEventListener("mousemove", this.onMouseMove.bind(this));
     // 窗口大小调整事件
@@ -392,7 +404,7 @@ export class SceneControl {
   /**
    * 鼠标点击事件处理
    */
-  //防抖
+  //防抖 - 专门用于场景切换
   debounce(func, delay) {
     let timeoutId;
     return function () {
@@ -401,6 +413,21 @@ export class SceneControl {
         func.apply(this, arguments);
       }, delay);
     };
+  }
+
+  // 初始化防抖的场景切换方法
+  initDebouncedMethods() {
+    this.debouncedSwitchScene = this.debounce(() => {
+      // 检查是否正在切换场景
+      if (this.isSceneSwitching) {
+        console.log('场景正在切换中，忽略此次请求');
+        return;
+      }
+      const sceneIds = Object.keys(this.sceneStates);
+      const currentIndex = sceneIds.indexOf(this.currentScene);
+      const targetScene = sceneIds[(currentIndex + 1) % sceneIds.length];
+      this.switchToScene(targetScene);
+    }, 500);
   }
   onMouseClick(event) {
     this.updateMousePosition(event);
@@ -418,14 +445,11 @@ export class SceneControl {
 
     if (intersects.length > 0) {
       if (intersects[0].object.name === "point") {
-        // 使用平滑动画转向目标点，不锁定视角
+        // 点击标记点，立即执行，不使用防抖
         this.tweenControlCenter(intersects[0].object.position, 1000);
       } else {
-        // 切换场景逻辑
-        const sceneIds = Object.keys(this.sceneStates);
-        const currentIndex = sceneIds.indexOf(this.currentScene);
-        const targetScene = sceneIds[(currentIndex + 1) % sceneIds.length];
-        this.switchToScene(targetScene);
+        // 切换场景逻辑，使用防抖
+        this.debouncedSwitchScene();
       }
     }
   }
