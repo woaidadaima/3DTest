@@ -25,8 +25,8 @@ export class SceneControl {
         enableZoom: true,
         zoomSpeed: 3,
         enablePan: false,
-        minDistance: 0.5,
-        maxDistance: 3000,
+        minDistance: 0.01,
+        maxDistance: 1500,
         minPolarAngle: Math.PI / 8,
         maxPolarAngle: Math.PI - Math.PI / 8,
       },
@@ -65,25 +65,28 @@ export class SceneControl {
   tweenControlCenter(targetPosition, duration = 1000) {
     // 保存当前的controls target
     const currentTarget = this.controls.target.clone();
-    
+
     // 计算从相机位置到目标点的方向向量
     const direction = new THREE.Vector3()
       .subVectors(targetPosition, this.camera.position)
       .normalize();
-    
+
     // 计算新的target点（相机位置 + 方向向量 * 当前距离）
     const currentDistance = this.camera.position.distanceTo(currentTarget);
     const newTarget = new THREE.Vector3()
       .copy(this.camera.position)
       .add(direction.multiplyScalar(currentDistance));
-    
+
     // 使用TWEEN平滑过渡controls的target
     const tween = new TWEEN.Tween(currentTarget)
-      .to({
-        x: newTarget.x,
-        y: newTarget.y,
-        z: newTarget.z
-      }, duration)
+      .to(
+        {
+          x: newTarget.x,
+          y: newTarget.y,
+          z: newTarget.z,
+        },
+        duration
+      )
       .onUpdate(() => {
         this.controls.target.copy(currentTarget);
         this.controls.update();
