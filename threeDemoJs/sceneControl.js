@@ -379,7 +379,10 @@ export class SceneControl {
    */
   bindEvents() {
     // 点击事件
-    window.addEventListener("click", this.onMouseClick.bind(this));
+    window.addEventListener(
+      "click",
+      this.debounce(this.onMouseClick.bind(this), 500)
+    );
     // 鼠标移动事件
     window.addEventListener("mousemove", this.onMouseMove.bind(this));
     // 窗口大小调整事件
@@ -389,6 +392,16 @@ export class SceneControl {
   /**
    * 鼠标点击事件处理
    */
+  //防抖
+  debounce(func, delay) {
+    let timeoutId;
+    return function () {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func.apply(this, arguments);
+      }, delay);
+    };
+  }
   onMouseClick(event) {
     this.updateMousePosition(event);
     this.raycaster.setFromCamera(this.mouse, this.camera);
